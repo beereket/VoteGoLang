@@ -12,4 +12,4 @@ This full-stack project provides a complete **Online Election System**, includin
 | Name             | Role                   | GitHub                                                 |
 |------------------|------------------------|--------------------------------------------------------|
 | Darkhan Tastanov | Backend Developer      | [@DarkhanTastanov](https://github.com/DarkhanTastanov) |
-| Bereket Yergali  | Frontend Developer     | [@Bereket](https://github.com/beereket)                |
+| Bereket Yergali  | Frontend Developer     | [@BereketYergali](https://github.com/beereket)         |

@@ -1,9 +1,61 @@
 <script setup>
+import { ref } from 'vue'
+
+// Только один выбранный ID
+const selectedCard = ref(null)
+
+const cardData = ref([
+  {
+    id: 1,
+    name: 'John Doe',
+    region: 'Teldeniya',
+    position: 'Mahanuwara',
+    party: 'SLPP',
+    percent: '72.83%',
+    type: 'President',
+    avatar: 'https://ui-avatars.com/api/?name=John+Doe'
+  },
+  {
+    id: 2,
+    name: 'Jane Smith',
+    region: 'Kandy',
+    position: 'Central Province',
+    party: 'UNP',
+    percent: '58.42%',
+    type: 'Deputy',
+    avatar: 'https://ui-avatars.com/api/?name=Jane+Smith'
+  },
+  {
+    id: 3,
+    name: 'Ali Khan',
+    region: 'Galle',
+    position: 'Southern Province',
+    party: 'JVP',
+    percent: '66.12%',
+    type: 'Session Deputy',
+    avatar: 'https://ui-avatars.com/api/?name=Ali+Khan'
+  },
+  {
+    id: 4,
+    name: 'Maria Ivanova',
+    region: 'Colombo',
+    position: 'Western Province',
+    party: 'SLFP',
+    percent: '81.22%',
+    type: 'Petition',
+    avatar: 'https://ui-avatars.com/api/?name=Maria+Ivanova'
+  }
+])
+
+const selectCard = (id) => {
+  selectedCard.value = id
+}
+
+const isSelected = (id) => selectedCard.value === id
 
 </script>
 
 <!--President, Deputat, Session Deputat, Petition-->
-
 
 <template>
   <div class="container">
@@ -14,78 +66,35 @@
 
     <div class="dashboard">
       <h3 class="card-title">Latest Released Results</h3>
+
       <div class="card-container">
-        <div class="card">
-          <p class="card-arrow">Teldeniya</p>
-          <p class="card-position">Mahanuwara</p>
+        <div
+            v-for="card in cardData"
+            :key="card.id"
+            class="card"
+            :class="{ selected: isSelected(card.id) }"
+            @click="selectCard(card.id)"
+        >
+<!--          <img :src="card.avatar" alt="avatar" style="width: 50px; margin: 15px; border-radius: 50%" />-->
+          <p class="card-arrow">{{ card.region }}</p>
+          <p class="card-position">{{ card.position }}</p>
 
           <span class="winning">
-            <p>SLPP</p>
-            <p>72.83%</p>
+            <p>{{ card.party }}</p>
+            <p>{{ card.percent }}</p>
           </span>
 
-          <p class="card-name">Anura Dissaskad</p>
+          <p class="card-name">{{ card.name }}</p>
         </div>
+      </div>
+    </div>
 
-        <div class="card">
-          <p class="card-arrow">Teldeniya</p>
-          <p class="card-position">Mahanuwara</p>
+    <div class="result-scores">
+      <h3 class="result-title">Vote Results - Cumulative</h3>
 
-          <span class="winning">
-            <p>SLPP</p>
-            <p>72.83%</p>
-          </span>
-
-          <p class="card-name">Anura Dissaskad</p>
-        </div>
-
-        <div class="card">
-          <p class="card-arrow">Teldeniya</p>
-          <p class="card-position">Mahanuwara</p>
-
-          <span class="winning">
-            <p>SLPP</p>
-            <p>72.83%</p>
-          </span>
-
-          <p class="card-name">Anura Dissaskad</p>
-        </div>
-        <div class="card">
-          <p class="card-arrow">Teldeniya</p>
-          <p class="card-position">Mahanuwara</p>
-
-          <span class="winning">
-            <p>SLPP</p>
-            <p>72.83%</p>
-          </span>
-
-          <p class="card-name">Anura Dissaskad</p>
-        </div>
-        <div class="card">
-          <p class="card-arrow">Teldeniya</p>
-          <p class="card-position">Mahanuwara</p>
-
-          <span class="winning">
-            <p>SLPP</p>
-            <p>72.83%</p>
-          </span>
-
-          <p class="card-name">Anura Dissaskad</p>
-        </div>
-        <div class="card">
-          <p class="card-arrow">Teldeniya</p>
-          <p class="card-position">Mahanuwara</p>
-
-          <span class="winning">
-            <p>SLPP</p>
-            <p>72.83%</p>
-          </span>
-
-          <p class="card-name">Anura Dissaskad</p>
-        </div>
+      <div>
 
       </div>
-
 
     </div>
   </div>
@@ -191,5 +200,11 @@
   margin-top: -20px;
   margin-left: 15px;
 }
+
+.card.selected {
+  border: 2px solid #800020;
+  transition: 0.4s in ease-in-out;
+}
+
 
 </style>
