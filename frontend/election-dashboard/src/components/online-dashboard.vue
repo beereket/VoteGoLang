@@ -92,7 +92,7 @@ const isSelected = (id) => selectedCard.value === id
     <div class="result-scores">
       <h3 class="result-title">Vote Results - Cumulative</h3>
 
-      <div>
+      <div class="result-container">
 
       </div>
 
@@ -110,8 +110,8 @@ const isSelected = (id) => selectedCard.value === id
 }
 
 .header {
-  position: fixed;
-  top: 30px;
+  position: absolute;
+  top: 10px;
 
   display: flex;
   align-items: center;
@@ -127,17 +127,19 @@ const isSelected = (id) => selectedCard.value === id
   line-height: 45px;
 
   color: #000000;
+
+
 }
 
 .logo {
   color: black;
   margin-left: 10px;
-
-  filter: invert(100%) sepia(0%) saturate(7500%) hue-rotate(13deg) brightness(101%) contrast(106%);
+  //filter: invert(76%) sepia(21%) saturate(5911%) hue-rotate(350deg) brightness(94%) contrast(97%);
+  filter: invert(35%) sepia(0%) saturate(0%) hue-rotate(78deg) brightness(94%) contrast(95%);
 }
 
 .dashboard {
-
+  margin-top: -100px;
 }
 
 .card-title {
@@ -157,10 +159,18 @@ const isSelected = (id) => selectedCard.value === id
   height: 188px;
   box-shadow: rgba(100, 100, 111, 0.2) 0px 7px 29px 0px;
 
-  background: #D9D9D9;
+  background: #e8e8e8;
   border-radius: 19px;
 
   text-align: left;
+
+  transition: 0.7s;
+}
+
+.card:hover {
+  transition: 0.5s;
+  transform: scale(102.5%);
+  border: 2px solid gray;
 }
 
 
@@ -204,6 +214,15 @@ const isSelected = (id) => selectedCard.value === id
 .card.selected {
   border: 2px solid #800020;
   transition: 0.4s in ease-in-out;
+}
+
+.result-container {
+}
+.result-title {
+  text-align: left;
+  font-size: 24px;
+
+  margin-top: 50px;
 }
 
 

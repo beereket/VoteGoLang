@@ -4,8 +4,8 @@ This full-stack project provides a complete **Online Election System**, includin
 
 ## 📦 Project Structure
 
-- **Backend**: Built in **Go**, includes user authentication, candidate voting, petition management, and news features.
-- **Frontend**: A **Vue-based dashboard** (or your preferred frontend framework) for interacting with backend services, visualizing voting results, and managing the election flow.
+- **Backend**: Built in **Go**.
+- **Frontend**: A **Vue-based dashboard** for interacting with backend services, visualizing voting results, and managing the election flow.
 
 ## 👥 Meet the Team
 
