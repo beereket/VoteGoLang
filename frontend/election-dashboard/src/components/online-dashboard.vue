@@ -1,7 +1,7 @@
 <script setup>
 import { ref } from 'vue'
+import BarChart from "@/components/bar-chart.vue";
 
-// Только один выбранный ID
 const selectedCard = ref(null)
 
 const cardData = ref([
@@ -92,8 +92,11 @@ const isSelected = (id) => selectedCard.value === id
     <div class="result-scores">
       <h3 class="result-title">Vote Results - Cumulative</h3>
 
-      <div class="result-container">
-
+      <div v-if="selectedCard" class="chart-container">
+        <BarChart
+            :name="cardData.find(c => c.id === selectedCard)?.name"
+            :percent="cardData.find(c => c.id === selectedCard)?.percent"
+        />
       </div>
 
     </div>
@@ -224,6 +227,8 @@ const isSelected = (id) => selectedCard.value === id
 
   margin-top: 50px;
 }
+
+
 
 
 </style>
