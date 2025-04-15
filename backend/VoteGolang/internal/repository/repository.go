@@ -24,49 +24,45 @@ type CandidateRepository interface {
 	FindAllCandidates(db *gorm.DB) ([]data.Candidate, error)
 }
 
-// VoteRepository implementation
-type voteRepo struct{}
+type VoteRepo struct{}
 
-func (r *voteRepo) FindAllVotes(db *gorm.DB) ([]data.Vote, error) {
+func (r *VoteRepo) FindAllVotes(db *gorm.DB) ([]data.Vote, error) {
 	var votes []data.Vote
 	err := db.Find(&votes).Error
 	return votes, err
 }
 
-func (r *voteRepo) DeleteVoteByID(db *gorm.DB, id uint) error {
+func (r *VoteRepo) DeleteVoteByID(db *gorm.DB, id uint) error {
 	return db.Delete(&data.Vote{}, id).Error
 }
 
-// UserRepository implementation
-type userRepo struct{}
+type UserRepo struct{}
 
-func (r *userRepo) FindAllUsers(db *gorm.DB) ([]data.User, error) {
+func (r *UserRepo) FindAllUsers(db *gorm.DB) ([]data.User, error) {
 	var users []data.User
 	err := db.Find(&users).Error
 	return users, err
 }
 
-// PetitionRepository implementation
-type petitionRepo struct{}
+type PetitionRepo struct{}
 
-func (r *petitionRepo) FindAllPetitions(db *gorm.DB) ([]data.Petition, error) {
+func (r *PetitionRepo) FindAllPetitions(db *gorm.DB) ([]data.Petition, error) {
 	var petitions []data.Petition
 	err := db.Find(&petitions).Error
 	return petitions, err
 }
 
-func (r *petitionRepo) CreatePetition(db *gorm.DB, petition *data.Petition) error {
+func (r *PetitionRepo) CreatePetition(db *gorm.DB, petition *data.Petition) error {
 	return db.Create(petition).Error
 }
 
-func (r *petitionRepo) DeletePetitionByID(db *gorm.DB, id uint) error {
+func (r *PetitionRepo) DeletePetitionByID(db *gorm.DB, id uint) error {
 	return db.Delete(&data.Petition{}, id).Error
 }
 
-// CandidateRepository implementation
-type candidateRepo struct{}
+type CandidateRepo struct{}
 
-func (r *candidateRepo) FindAllCandidates(db *gorm.DB) ([]data.Candidate, error) {
+func (r *CandidateRepo) FindAllCandidates(db *gorm.DB) ([]data.Candidate, error) {
 	var candidates []data.Candidate
 	err := db.Find(&candidates).Error
 	return candidates, err
