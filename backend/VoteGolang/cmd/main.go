@@ -1,20 +1,17 @@
 package main
 
 import (
-	"VoteGolang/config"
-	"VoteGolang/internal/routes"
 	"log"
 	"net/http"
+
+	"VoteGolang/internal/database"
+	"VoteGolang/internal/routes"
 )
 
 func main() {
-	db, err := config.ConnectDB()
-	if err != nil {
-		log.Fatal("Could not connect to DB:", err)
-	}
-	defer db.Close()
+	database.InitDB()
+	r := routes.RegisterRoutes()
 
-	router := routes.SetupRoutes(db)
-	log.Println("Server started on :8080")
-	log.Fatal(http.ListenAndServe(":8080", router))
+	log.Println("🚀 Server running at http://localhost:8080")
+	log.Fatal(http.ListenAndServe(":8080", r))
 }
