@@ -36,6 +36,7 @@ func RegisterRoutes() *mux.Router {
 	admin.HandleFunc("/dashboard/votes-per-day", handlers.GetVotesPerDay).Methods("GET")
 	admin.HandleFunc("/dashboard/users-per-week", handlers.GetUserRegistrationsPerWeek).Methods("GET")
 
+	admin.HandleFunc("/users/ban/{id}", handlers.BanUser).Methods("DELETE")
 	admin.HandleFunc("/users/admins", handlers.ListAdminUsers).Methods("GET")
 	admin.HandleFunc("/users/create-admin", handlers.CreateAdminUser).Methods("POST")
 

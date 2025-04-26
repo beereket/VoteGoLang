@@ -2,7 +2,10 @@ package handlers
 
 import (
 	"encoding/json"
+	"github.com/gorilla/mux"
 	"net/http"
+	"strconv"
+	"time"
 
 	"VoteGolang/internal/database"
 )
@@ -139,4 +142,30 @@ func GetUserRegistrationsPerWeek(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(users)
+}
+func BanUser(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	idStr := vars["id"]
+
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "❌ Invalid user ID", http.StatusBadRequest)
+		return
+	}
+
+	_, err = database.DB.Exec(`
+		UPDATE users
+		SET deleted_at = ?
+		WHERE id = ? AND deleted_at IS NULL
+	`, time.Now(), id)
+
+	if err != nil {
+		http.Error(w, "❌ Failed to ban user", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{
+		"message": "✅ User banned successfully!",
+	})
 }
