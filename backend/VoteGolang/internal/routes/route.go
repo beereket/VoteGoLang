@@ -43,6 +43,7 @@ func RegisterRoutes() *mux.Router {
 	admin.HandleFunc("/candidates/delete/{id}", handlers.DeleteCandidate).Methods("DELETE")
 
 	admin.HandleFunc("/petitions/delete/{id}", handlers.DeletePetition).Methods("DELETE")
+	admin.HandleFunc("/petitions/comments/delete/{id}", handlers.DeletePetitionComment).Methods("DELETE")
 	//admin.HandleFunc("/news/create", handlers.CreateNews).Methods("POST")
 
 	return r

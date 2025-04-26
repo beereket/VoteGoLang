@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/gorilla/mux"
 	"net/http"
+	"strconv"
 	"time"
 
 	"VoteGolang/internal/database"
@@ -84,4 +85,32 @@ func ListPetitionComments(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(comments)
+}
+
+func DeletePetitionComment(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	idStr := vars["id"]
+
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "❌ Invalid comment ID", http.StatusBadRequest)
+		return
+	}
+
+	// Soft delete the comment
+	_, err = database.DB.Exec(`
+		UPDATE petition_comments
+		SET deleted_at = NOW()
+		WHERE id = ? AND deleted_at IS NULL
+	`, id)
+
+	if err != nil {
+		http.Error(w, "❌ Failed to delete comment", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{
+		"message": "✅ Comment deleted successfully",
+	})
 }
