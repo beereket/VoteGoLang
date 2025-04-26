@@ -169,3 +169,27 @@ func BanUser(w http.ResponseWriter, r *http.Request) {
 		"message": "✅ User banned successfully!",
 	})
 }
+
+func CleanDeleted(w http.ResponseWriter, r *http.Request) {
+	tables := []string{
+		"users",
+		"candidates",
+		"votes",
+		"petitions",
+		"petition_comments",
+		"general_news",
+	}
+
+	for _, table := range tables {
+		_, err := database.DB.Exec("DELETE FROM " + table + " WHERE deleted_at IS NOT NULL")
+		if err != nil {
+			http.Error(w, "❌ Failed to clean "+table, http.StatusInternalServerError)
+			return
+		}
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{
+		"message": "✅ Cleaned all soft-deleted records!",
+	})
+}

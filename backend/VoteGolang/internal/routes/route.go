@@ -36,6 +36,7 @@ func RegisterRoutes() *mux.Router {
 	admin.HandleFunc("/dashboard", handlers.GetAdminDashboard).Methods("GET")
 	admin.HandleFunc("/dashboard/votes-per-day", handlers.GetVotesPerDay).Methods("GET")
 	admin.HandleFunc("/dashboard/users-per-week", handlers.GetUserRegistrationsPerWeek).Methods("GET")
+
 	admin.HandleFunc("/analytics/election", handlers.GetElectionAnalytics).Methods("GET")
 	admin.HandleFunc("/analytics/candidates", handlers.GetCandidateAnalytics).Methods("GET")
 
@@ -52,6 +53,8 @@ func RegisterRoutes() *mux.Router {
 
 	admin.HandleFunc("/news/create", handlers.CreateNews).Methods("POST")
 	admin.HandleFunc("/news/delete/{id}", handlers.DeleteNews).Methods("DELETE")
+
+	admin.HandleFunc("/clean-deleted", handlers.CleanDeleted).Methods("DELETE")
 
 	return r
 }
