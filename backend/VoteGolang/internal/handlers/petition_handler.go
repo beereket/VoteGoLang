@@ -40,46 +40,6 @@ func ListPetitions(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(petitions)
 }
 
-type VotePetitionInput struct {
-	PetitionID int    `json:"petition_id"`
-	VoteType   string `json:"vote_type"` // "favor" or "against"
-}
-
-func VoteOnPetition(w http.ResponseWriter, r *http.Request) {
-	var input VotePetitionInput
-
-	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-		http.Error(w, "❌ Invalid input", http.StatusBadRequest)
-		return
-	}
-
-	var field string
-	if input.VoteType == "favor" {
-		field = "vote_in_favor"
-	} else if input.VoteType == "against" {
-		field = "vote_against"
-	} else {
-		http.Error(w, "❌ Invalid vote type", http.StatusBadRequest)
-		return
-	}
-
-	_, err := database.DB.Exec(`
-		UPDATE petitions
-		SET `+field+` = `+field+` + 1, updated_at = NOW()
-		WHERE id = ? AND deleted_at IS NULL
-	`, input.PetitionID)
-
-	if err != nil {
-		http.Error(w, "❌ Failed to vote on petition", http.StatusInternalServerError)
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{
-		"message": "✅ Voted on petition successfully!",
-	})
-}
-
 type PetitionInput struct {
 	Title       string `json:"title"`
 	Photo       string `json:"photo"`
