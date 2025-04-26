@@ -62,3 +62,41 @@ func GetElectionAnalytics(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(data)
 }
+
+type CandidateDetails struct {
+	Name   string `json:"name"`
+	Type   string `json:"type"`
+	Age    int    `json:"age"`
+	Party  string `json:"party"`
+	Region string `json:"region"`
+	Votes  int    `json:"votes"`
+}
+
+func GetCandidateAnalytics(w http.ResponseWriter, r *http.Request) {
+	rows, err := database.DB.Query(`
+		SELECT name, type, age, party, region, votes
+		FROM candidates
+		WHERE deleted_at IS NULL
+		ORDER BY votes DESC
+	`)
+	if err != nil {
+		http.Error(w, "❌ Failed to fetch candidate analytics", http.StatusInternalServerError)
+		return
+	}
+	defer rows.Close()
+
+	var candidates []CandidateDetails
+
+	for rows.Next() {
+		var c CandidateDetails
+		err := rows.Scan(&c.Name, &c.Type, &c.Age, &c.Party, &c.Region, &c.Votes)
+		if err != nil {
+			http.Error(w, "❌ Error reading candidate data", http.StatusInternalServerError)
+			return
+		}
+		candidates = append(candidates, c)
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(candidates)
+}
