@@ -3,7 +3,9 @@ package handlers
 import (
 	"VoteGolang/internal/models"
 	"encoding/json"
+	"github.com/gorilla/mux"
 	"net/http"
+	"strconv"
 	"time"
 
 	"VoteGolang/internal/database"
@@ -115,4 +117,32 @@ func CreatePetition(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(map[string]string{"message": "✅ Petition created!"})
+}
+
+func DeletePetition(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	idStr := vars["id"]
+
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "❌ Invalid petition ID", http.StatusBadRequest)
+		return
+	}
+
+	// Soft delete the petition
+	_, err = database.DB.Exec(`
+		UPDATE petitions
+		SET deleted_at = NOW()
+		WHERE id = ? AND deleted_at IS NULL
+	`, id)
+
+	if err != nil {
+		http.Error(w, "❌ Failed to delete petition", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{
+		"message": "✅ Petition deleted (soft deleted)",
+	})
 }

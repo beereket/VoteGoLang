@@ -25,6 +25,8 @@ func RegisterRoutes() *mux.Router {
 	r.HandleFunc("/petitions", handlers.ListPetitions).Methods("GET")
 	r.HandleFunc("/petitions/create", handlers.CreatePetition).Methods("POST")
 	r.HandleFunc("/petitions/vote", handlers.VoteOnPetition).Methods("POST")
+	r.HandleFunc("/petitions/{id}/comments", handlers.ListPetitionComments).Methods("GET")
+	r.HandleFunc("/petitions/comments/create", handlers.CreatePetitionComment).Methods("POST")
 
 	// Protected admin routes:
 	admin := r.PathPrefix("/admin").Subrouter()
@@ -40,6 +42,7 @@ func RegisterRoutes() *mux.Router {
 	admin.HandleFunc("/candidates/update/{id}", handlers.UpdateCandidate).Methods("PUT")
 	admin.HandleFunc("/candidates/delete/{id}", handlers.DeleteCandidate).Methods("DELETE")
 
+	admin.HandleFunc("/petitions/delete/{id}", handlers.DeletePetition).Methods("DELETE")
 	//admin.HandleFunc("/news/create", handlers.CreateNews).Methods("POST")
 
 	return r
