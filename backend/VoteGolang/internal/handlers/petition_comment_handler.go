@@ -3,7 +3,6 @@ package handlers
 import (
 	"VoteGolang/internal/models"
 	"encoding/json"
-	"fmt"
 	"github.com/gorilla/mux"
 	"net/http"
 	"strconv"
@@ -51,19 +50,40 @@ func ListPetitionComments(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	idStr := vars["id"]
 
-	var petitionID int
-	_, err := fmt.Sscanf(idStr, "%d", &petitionID)
+	petitionID, err := strconv.Atoi(idStr)
 	if err != nil {
 		http.Error(w, "❌ Invalid petition ID", http.StatusBadRequest)
 		return
 	}
 
+	pageStr := r.URL.Query().Get("page")
+	limitStr := r.URL.Query().Get("limit")
+
+	page := 1
+	limit := 10
+
+	if pageStr != "" {
+		if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
+			page = p
+		}
+	}
+
+	if limitStr != "" {
+		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 {
+			limit = l
+		}
+	}
+
+	offset := (page - 1) * limit
+
+	// Query comments with LIMIT and OFFSET
 	rows, err := database.DB.Query(`
 		SELECT id, user_id, comment_text, created_at
 		FROM petition_comments
 		WHERE petition_id = ? AND deleted_at IS NULL
 		ORDER BY created_at DESC
-	`, petitionID)
+		LIMIT ? OFFSET ?
+	`, petitionID, limit, offset)
 
 	if err != nil {
 		http.Error(w, "❌ Failed to fetch comments", http.StatusInternalServerError)
