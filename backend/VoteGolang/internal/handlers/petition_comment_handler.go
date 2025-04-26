@@ -3,6 +3,7 @@ package handlers
 import (
 	"VoteGolang/internal/models"
 	"encoding/json"
+	"fmt"
 	"github.com/gorilla/mux"
 	"net/http"
 	"strconv"
@@ -47,6 +48,7 @@ func CreatePetitionComment(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]string{"message": "✅ Comment added!"})
 }
 func ListPetitionComments(w http.ResponseWriter, r *http.Request) {
+	// Get petition id
 	vars := mux.Vars(r)
 	idStr := vars["id"]
 
@@ -56,8 +58,10 @@ func ListPetitionComments(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Get query params
 	pageStr := r.URL.Query().Get("page")
 	limitStr := r.URL.Query().Get("limit")
+	sortBy := r.URL.Query().Get("sort") // "best" or "newest"
 
 	page := 1
 	limit := 10
@@ -76,15 +80,20 @@ func ListPetitionComments(w http.ResponseWriter, r *http.Request) {
 
 	offset := (page - 1) * limit
 
-	// Query comments with LIMIT and OFFSET
-	rows, err := database.DB.Query(`
-		SELECT id, user_id, comment_text, created_at
+	orderBy := "created_at DESC" // default newest
+	if sortBy == "best" {
+		orderBy = "(upvotes - downvotes) DESC"
+	}
+
+	query := fmt.Sprintf(`
+		SELECT id, user_id, comment_text, upvotes, downvotes, created_at
 		FROM petition_comments
 		WHERE petition_id = ? AND deleted_at IS NULL
-		ORDER BY created_at DESC
+		ORDER BY %s
 		LIMIT ? OFFSET ?
-	`, petitionID, limit, offset)
+	`, orderBy)
 
+	rows, err := database.DB.Query(query, petitionID, limit, offset)
 	if err != nil {
 		http.Error(w, "❌ Failed to fetch comments", http.StatusInternalServerError)
 		return
@@ -95,7 +104,7 @@ func ListPetitionComments(w http.ResponseWriter, r *http.Request) {
 
 	for rows.Next() {
 		var c models.PetitionComment
-		err := rows.Scan(&c.ID, &c.UserID, &c.CommentText, &c.CreatedAt)
+		err := rows.Scan(&c.ID, &c.UserID, &c.CommentText, &c.Upvotes, &c.Downvotes, &c.CreatedAt)
 		if err != nil {
 			http.Error(w, "❌ Error reading comment", http.StatusInternalServerError)
 			return
@@ -132,5 +141,52 @@ func DeletePetitionComment(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]string{
 		"message": "✅ Comment deleted successfully",
+	})
+}
+
+type VoteCommentInput struct {
+	VoteType string `json:"vote_type"` // "upvote" or "downvote"
+}
+
+func VoteOnComment(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	idStr := vars["id"]
+
+	commentID, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "❌ Invalid comment ID", http.StatusBadRequest)
+		return
+	}
+
+	var input VoteCommentInput
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		http.Error(w, "❌ Invalid input", http.StatusBadRequest)
+		return
+	}
+
+	var field string
+	if input.VoteType == "upvote" {
+		field = "upvotes"
+	} else if input.VoteType == "downvote" {
+		field = "downvotes"
+	} else {
+		http.Error(w, "❌ Invalid vote type", http.StatusBadRequest)
+		return
+	}
+
+	_, err = database.DB.Exec(`
+		UPDATE petition_comments
+		SET `+field+` = `+field+` + 1, updated_at = NOW()
+		WHERE id = ? AND deleted_at IS NULL
+	`, commentID)
+
+	if err != nil {
+		http.Error(w, "❌ Failed to vote on comment", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{
+		"message": "✅ Voted successfully on comment!",
 	})
 }
