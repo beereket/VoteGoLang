@@ -101,6 +101,11 @@ func GetCandidateAnalytics(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(candidates)
 }
 
+type PartyAnalytics struct {
+	PartyName  string `json:"party_name"`
+	TotalVotes int    `json:"total_votes"`
+}
+
 func GetPartyAnalytics(w http.ResponseWriter, r *http.Request) {
 	rows, err := database.DB.Query(`
 		SELECT party, SUM(votes) as total_votes
@@ -116,6 +121,7 @@ func GetPartyAnalytics(w http.ResponseWriter, r *http.Request) {
 	defer rows.Close()
 
 	var parties []PartyAnalytics
+	totalVotes := 0
 
 	for rows.Next() {
 		var p PartyAnalytics
@@ -125,8 +131,120 @@ func GetPartyAnalytics(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		parties = append(parties, p)
+		totalVotes += p.TotalVotes
+	}
+
+	// Calculate percentages
+	type PartyAnalyticsWithPercent struct {
+		PartyName  string  `json:"party_name"`
+		TotalVotes int     `json:"total_votes"`
+		Percentage float64 `json:"percentage"`
+	}
+
+	var result []PartyAnalyticsWithPercent
+	for _, p := range parties {
+		percent := (float64(p.TotalVotes) / float64(totalVotes)) * 100
+		result = append(result, PartyAnalyticsWithPercent{
+			PartyName:  p.PartyName,
+			TotalVotes: p.TotalVotes,
+			Percentage: percent,
+		})
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(result)
+}
+
+type PartyPercentAnalytics struct {
+	PartyName  string  `json:"party_name"`
+	TotalVotes int     `json:"total_votes"`
+	Percentage float64 `json:"percentage"`
+}
+
+func GetPartyPercentageAnalytics(w http.ResponseWriter, r *http.Request) {
+	rows, err := database.DB.Query(`
+		SELECT party, SUM(votes) as total_votes
+		FROM candidates
+		WHERE deleted_at IS NULL
+		GROUP BY party
+	`)
+	if err != nil {
+		http.Error(w, "❌ Failed to fetch party analytics", http.StatusInternalServerError)
+		return
+	}
+	defer rows.Close()
+
+	var parties []PartyPercentAnalytics
+	totalVotes := 0
+
+	// First: read all party votes
+	for rows.Next() {
+		var p PartyPercentAnalytics
+		err := rows.Scan(&p.PartyName, &p.TotalVotes)
+		if err != nil {
+			http.Error(w, "❌ Error reading party data", http.StatusInternalServerError)
+			return
+		}
+		parties = append(parties, p)
+		totalVotes += p.TotalVotes
+	}
+
+	// Second: calculate % for each party
+	for i := range parties {
+		if totalVotes > 0 {
+			parties[i].Percentage = (float64(parties[i].TotalVotes) / float64(totalVotes)) * 100
+		} else {
+			parties[i].Percentage = 0
+		}
 	}
 
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(parties)
+}
+
+type TopCandidate struct {
+	PartyName     string `json:"party_name"`
+	CandidateName string `json:"candidate_name"`
+	TotalVotes    int    `json:"total_votes"`
+}
+
+func GetTopCandidatesPerParty(w http.ResponseWriter, r *http.Request) {
+	rows, err := database.DB.Query(`
+		SELECT party, name, votes
+		FROM candidates
+		WHERE deleted_at IS NULL
+		ORDER BY party ASC, votes DESC
+	`)
+	if err != nil {
+		http.Error(w, "❌ Failed to fetch top candidates", http.StatusInternalServerError)
+		return
+	}
+	defer rows.Close()
+
+	partySeen := make(map[string]bool)
+	var topCandidates []TopCandidate
+
+	for rows.Next() {
+		var party, name string
+		var votes int
+
+		err := rows.Scan(&party, &name, &votes)
+		if err != nil {
+			http.Error(w, "❌ Error reading candidate data", http.StatusInternalServerError)
+			return
+		}
+
+		// If party not already added ➔ this is top candidate
+		if !partySeen[party] {
+			topCandidates = append(topCandidates, TopCandidate{
+				PartyName:     party,
+				CandidateName: name,
+				TotalVotes:    votes,
+			})
+			partySeen[party] = true
+		}
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(topCandidates)
 }
