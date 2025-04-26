@@ -12,6 +12,7 @@ func RegisterRoutes() *mux.Router {
 	r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("✅ VoteGolang backend running"))
 	})
+	r.HandleFunc("/news", handlers.ListNews).Methods("GET")
 
 	r.HandleFunc("/users/create", handlers.CreateUser).Methods("POST")
 	r.HandleFunc("/users/login", handlers.LoginUser).Methods("POST")
@@ -46,7 +47,9 @@ func RegisterRoutes() *mux.Router {
 
 	admin.HandleFunc("/petitions/delete/{id}", handlers.DeletePetition).Methods("DELETE")
 	admin.HandleFunc("/petitions/comments/delete/{id}", handlers.DeletePetitionComment).Methods("DELETE")
-	//admin.HandleFunc("/news/create", handlers.CreateNews).Methods("POST")
+
+	admin.HandleFunc("/news/create", handlers.CreateNews).Methods("POST")
+	admin.HandleFunc("/news/delete/{id}", handlers.DeleteNews).Methods("DELETE")
 
 	return r
 }
