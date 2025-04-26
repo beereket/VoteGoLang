@@ -75,7 +75,7 @@ const isSelected = (id) => selectedCard.value === id
             :class="{ selected: isSelected(card.id) }"
             @click="selectCard(card.id)"
         >
-<!--          <img :src="card.avatar" alt="avatar" style="width: 50px; margin: 15px; border-radius: 50%" />-->
+          <!--          <img :src="card.avatar" alt="avatar" style="width: 50px; margin: 15px; border-radius: 50%" />-->
           <p class="card-arrow">{{ card.region }}</p>
           <p class="card-position">{{ card.position }}</p>
 

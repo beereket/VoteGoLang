@@ -1,17 +1,15 @@
 <template>
   <div id="app">
-    <online-dashboard/>
+    <router-view/>
   </div>
 </template>
 
 <script>
 
-import OnlineDashboard from "@/components/online-dashboard.vue";
 
 export default {
   name: 'App',
   components: {
-    OnlineDashboard
   }
 }
 </script>
