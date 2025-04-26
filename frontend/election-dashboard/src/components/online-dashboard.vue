@@ -220,6 +220,7 @@ const isSelected = (id) => selectedCard.value === id
 }
 
 .result-container {
+
 }
 .result-title {
   text-align: left;

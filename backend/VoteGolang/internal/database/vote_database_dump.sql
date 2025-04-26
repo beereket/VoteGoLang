@@ -50,7 +50,7 @@ INSERT INTO `candidates` VALUES (1,'John Doe','john.jpg','Harvard University',52
 UNLOCK TABLES;
 
 --
--- Table structure for table `general_news_repository`
+-- Table structure for table `general_news`
 --
 
 DROP TABLE IF EXISTS `general_news`;
@@ -69,13 +69,13 @@ CREATE TABLE `general_news` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
--- Dumping data for table `general_news_repository`
+-- Dumping data for table `general_news`
 --
 
 LOCK TABLES `general_news` WRITE;
-/*!40000 ALTER TABLE `general_news_repository` DISABLE KEYS */;
+/*!40000 ALTER TABLE `general_news` DISABLE KEYS */;
 INSERT INTO `general_news` VALUES (1,'Election Day Announced','The upcoming national election has been officially scheduled for July 15, 2025. Citizens are encouraged to check their registration status.','election_day.jpg',NULL,'2025-04-10 21:27:51','2025-04-10 21:27:51');
-/*!40000 ALTER TABLE `general_news_repository` ENABLE KEYS */;
+/*!40000 ALTER TABLE `general_news` ENABLE KEYS */;
 UNLOCK TABLES;
 
 --
@@ -173,7 +173,7 @@ INSERT INTO `users` VALUES (1,'Darkhan','Darkhan Tastanov','$2a$14$gcbdtp1ZuaRkh
 UNLOCK TABLES;
 
 --
--- Table structure for table `votes_repositories`
+-- Table structure for table `votes`
 --
 
 DROP TABLE IF EXISTS `votes`;
@@ -196,12 +196,12 @@ CREATE TABLE `votes` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
--- Dumping data for table `votes_repositories`
+-- Dumping data for table `votes`
 --
 
 LOCK TABLES `votes` WRITE;
-/*!40000 ALTER TABLE `votes_repositories` DISABLE KEYS */;
-/*!40000 ALTER TABLE `votes_repositories` ENABLE KEYS */;
+/*!40000 ALTER TABLE `votes` DISABLE KEYS */;
+/*!40000 ALTER TABLE `votes` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 

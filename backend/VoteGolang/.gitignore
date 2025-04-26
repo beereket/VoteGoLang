@@ -1,0 +1,21 @@
+# Binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+/vendor/
+
+.DS_Store
+Thumbs.db
+
+*.log
+
+cmd/.env
+
+# IDE/editor folders
+.vscode/
+.idea/
