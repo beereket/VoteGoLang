@@ -39,6 +39,7 @@ func RegisterRoutes() *mux.Router {
 
 	admin.HandleFunc("/analytics/election", handlers.GetElectionAnalytics).Methods("GET")
 	admin.HandleFunc("/analytics/candidates", handlers.GetCandidateAnalytics).Methods("GET")
+	admin.HandleFunc("/analytics/party", handlers.GetPartyAnalytics).Methods("GET")
 
 	admin.HandleFunc("/users/ban/{id}", handlers.BanUser).Methods("DELETE")
 	admin.HandleFunc("/users/admins", handlers.ListAdminUsers).Methods("GET")

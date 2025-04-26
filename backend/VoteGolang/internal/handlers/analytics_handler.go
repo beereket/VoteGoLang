@@ -100,3 +100,33 @@ func GetCandidateAnalytics(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(candidates)
 }
+
+func GetPartyAnalytics(w http.ResponseWriter, r *http.Request) {
+	rows, err := database.DB.Query(`
+		SELECT party, SUM(votes) as total_votes
+		FROM candidates
+		WHERE deleted_at IS NULL
+		GROUP BY party
+		ORDER BY total_votes DESC
+	`)
+	if err != nil {
+		http.Error(w, "❌ Failed to fetch party analytics", http.StatusInternalServerError)
+		return
+	}
+	defer rows.Close()
+
+	var parties []PartyAnalytics
+
+	for rows.Next() {
+		var p PartyAnalytics
+		err := rows.Scan(&p.PartyName, &p.TotalVotes)
+		if err != nil {
+			http.Error(w, "❌ Error reading party data", http.StatusInternalServerError)
+			return
+		}
+		parties = append(parties, p)
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(parties)
+}
