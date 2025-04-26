@@ -66,34 +66,58 @@ func LoginUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var dbPassword, role string
-	err := database.DB.QueryRow("SELECT password, role FROM users WHERE username = ?", input.Username).Scan(&dbPassword, &role)
-	if err == sql.ErrNoRows {
-		http.Error(w, "❌ User not found", http.StatusUnauthorized)
-		return
-	} else if err != nil {
-		http.Error(w, "❌ Server error", http.StatusInternalServerError)
+	var id int
+	var hashedPassword string
+	var role string
+	var deletedAt sql.NullTime
+
+	// ✅ Get user info
+	err := database.DB.QueryRow(`
+		SELECT id, password, role, deleted_at
+		FROM users
+		WHERE username = ?
+	`, input.Username).Scan(&id, &hashedPassword, &role, &deletedAt)
+
+	if err != nil {
+		http.Error(w, "❌ Invalid username or password", http.StatusUnauthorized)
 		return
 	}
 
-	if bcrypt.CompareHashAndPassword([]byte(dbPassword), []byte(input.Password)) != nil {
-		http.Error(w, "❌ Incorrect password", http.StatusUnauthorized)
+	// ✅ Check if user is banned
+	if deletedAt.Valid {
+		http.Error(w, "❌ This account is banned.", http.StatusForbidden)
 		return
 	}
 
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+	// ✅ Compare password
+	err = bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(input.Password))
+	if err != nil {
+		http.Error(w, "❌ Invalid username or password", http.StatusUnauthorized)
+		return
+	}
+
+	// ✅ Generate JWT Token
+	secret := os.Getenv("JWT_SECRET")
+	if secret == "" {
+		http.Error(w, "❌ Server config error", http.StatusInternalServerError)
+		return
+	}
+
+	claims := jwt.MapClaims{
 		"username": input.Username,
 		"role":     role,
-		"exp":      time.Now().Add(24 * time.Hour).Unix(), // 24h expiry
-	})
+		"exp":      time.Now().Add(24 * time.Hour).Unix(), // expires in 24h
+	}
 
-	tokenString, err := token.SignedString(jwtSecret)
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+
+	tokenString, err := token.SignedString([]byte(secret))
 	if err != nil {
-		http.Error(w, "❌ Failed to create token", http.StatusInternalServerError)
+		http.Error(w, "❌ Could not generate token", http.StatusInternalServerError)
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
+	// ✅ Send token back
 	json.NewEncoder(w).Encode(map[string]string{
 		"token": tokenString,
 	})
