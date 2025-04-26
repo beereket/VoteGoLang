@@ -12,12 +12,36 @@ import (
 )
 
 func ListNews(w http.ResponseWriter, r *http.Request) {
+	// Get query params
+	pageStr := r.URL.Query().Get("page")
+	limitStr := r.URL.Query().Get("limit")
+
+	page := 1
+	limit := 10
+
+	if pageStr != "" {
+		if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
+			page = p
+		}
+	}
+
+	if limitStr != "" {
+		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 {
+			limit = l
+		}
+	}
+
+	offset := (page - 1) * limit
+
+	// Query news with LIMIT and OFFSET
 	rows, err := database.DB.Query(`
 		SELECT id, title, paragraph, photo, created_at
 		FROM general_news
 		WHERE deleted_at IS NULL
 		ORDER BY created_at DESC
-	`)
+		LIMIT ? OFFSET ?
+	`, limit, offset)
+
 	if err != nil {
 		http.Error(w, "❌ Failed to fetch news", http.StatusInternalServerError)
 		return
