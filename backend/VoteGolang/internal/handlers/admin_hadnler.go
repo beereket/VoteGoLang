@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"VoteGolang/internal/models"
+	"database/sql"
 	"encoding/json"
 	"github.com/gorilla/mux"
 	"net/http"
@@ -192,4 +194,73 @@ func CleanDeleted(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]string{
 		"message": "✅ Cleaned all soft-deleted records!",
 	})
+}
+
+func UnbanUser(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	idStr := vars["id"]
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "❌ Invalid user ID", http.StatusBadRequest)
+		return
+	}
+
+	query := `
+	UPDATE users
+	SET deleted_at = NULL, updated_at = NOW()
+	WHERE id = ? AND deleted_at IS NOT NULL
+	`
+
+	result, err := database.DB.Exec(query, id)
+	if err != nil {
+		http.Error(w, "❌ Failed to unban user", http.StatusInternalServerError)
+		return
+	}
+
+	rowsAffected, _ := result.RowsAffected()
+	if rowsAffected == 0 {
+		http.Error(w, "❌ User is not banned", http.StatusBadRequest)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{
+		"message": "✅ User unbanned successfully",
+	})
+}
+
+func ListAllUsers(w http.ResponseWriter, r *http.Request) {
+	rows, err := database.DB.Query(`
+		SELECT id, username, user_full_name, birth_date, address, deleted_at
+		FROM users
+	`)
+	if err != nil {
+		http.Error(w, "❌ Failed to fetch users", http.StatusInternalServerError)
+		return
+	}
+	defer rows.Close()
+
+	var users []models.User
+
+	for rows.Next() {
+		var u models.User
+		var deletedAt sql.NullTime
+		err := rows.Scan(&u.ID, &u.Username, &u.UserFullName, &u.BirthDate, &u.Address, &deletedAt)
+		if err != nil {
+			http.Error(w, "❌ Error reading user", http.StatusInternalServerError)
+			return
+		}
+
+		if deletedAt.Valid {
+			temp := deletedAt.Time.Format(time.RFC3339)
+			u.DeletedAt = &temp
+		} else {
+			u.DeletedAt = nil
+		}
+
+		users = append(users, u)
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(users)
 }

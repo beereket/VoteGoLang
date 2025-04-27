@@ -12,7 +12,7 @@ import (
 
 func ListCandidates(w http.ResponseWriter, r *http.Request) {
 	rows, err := database.DB.Query(`
-		SELECT id, name, photo, education, age, party, region, type
+		SELECT id, name, photo, education, age, party, region, votes, type
 		FROM candidates
 		WHERE deleted_at IS NULL
 	`)
@@ -26,7 +26,7 @@ func ListCandidates(w http.ResponseWriter, r *http.Request) {
 
 	for rows.Next() {
 		var c models.Candidate
-		err := rows.Scan(&c.ID, &c.Name, &c.Photo, &c.Education, &c.Age, &c.Party, &c.Region, &c.Type)
+		err := rows.Scan(&c.ID, &c.Name, &c.Photo, &c.Education, &c.Age, &c.Party, &c.Region, &c.Votes, &c.Type)
 		if err != nil {
 			http.Error(w, "❌ Error reading candidate", http.StatusInternalServerError)
 			return

@@ -106,3 +106,26 @@ func DeletePetition(w http.ResponseWriter, r *http.Request) {
 		"message": "✅ Petition deleted (soft deleted)",
 	})
 }
+
+func UpdatePetition(w http.ResponseWriter, r *http.Request) {
+	id := mux.Vars(r)["id"]
+
+	var p models.Petition
+	if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
+		http.Error(w, "❌ Invalid input", http.StatusBadRequest)
+		return
+	}
+
+	_, err := database.DB.Exec(`
+		UPDATE petitions
+		SET title = ?, description = ?, photo = ?, updated_at = NOW()
+		WHERE id = ? AND deleted_at IS NULL
+	`, p.Title, p.Description, p.Photo, id)
+
+	if err != nil {
+		http.Error(w, "❌ Failed to update petition", http.StatusInternalServerError)
+		return
+	}
+
+	json.NewEncoder(w).Encode(map[string]string{"message": "✅ Petition updated"})
+}

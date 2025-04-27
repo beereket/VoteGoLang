@@ -15,7 +15,7 @@ type PetitionVoteInput struct {
 	VoteType   string `json:"vote_type"`
 }
 
-func CastPetitionVote(w http.ResponseWriter, r *http.Request) {
+func VoteOnPetition(w http.ResponseWriter, r *http.Request) {
 	var input PetitionVoteInput
 
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {

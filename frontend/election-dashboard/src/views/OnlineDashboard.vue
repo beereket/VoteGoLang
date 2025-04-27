@@ -1,50 +1,18 @@
 <script setup>
 import { ref } from 'vue'
-import BarChart from "@/components/bar-chart.vue";
+import BarChart from "@/components/BarChart.vue"
+import router from "@/router";
 
 const selectedCard = ref(null)
 
+const logout = () => {
+  localStorage.removeItem('token')
+  localStorage.removeItem('role')
+  router.replace('/login')
+}
+
 const cardData = ref([
-  {
-    id: 1,
-    name: 'John Doe',
-    region: 'Teldeniya',
-    position: 'Mahanuwara',
-    party: 'SLPP',
-    percent: '72.83%',
-    type: 'President',
-    avatar: 'https://ui-avatars.com/api/?name=John+Doe'
-  },
-  {
-    id: 2,
-    name: 'Jane Smith',
-    region: 'Kandy',
-    position: 'Central Province',
-    party: 'UNP',
-    percent: '58.42%',
-    type: 'Deputy',
-    avatar: 'https://ui-avatars.com/api/?name=Jane+Smith'
-  },
-  {
-    id: 3,
-    name: 'Ali Khan',
-    region: 'Galle',
-    position: 'Southern Province',
-    party: 'JVP',
-    percent: '66.12%',
-    type: 'Session Deputy',
-    avatar: 'https://ui-avatars.com/api/?name=Ali+Khan'
-  },
-  {
-    id: 4,
-    name: 'Maria Ivanova',
-    region: 'Colombo',
-    position: 'Western Province',
-    party: 'SLFP',
-    percent: '81.22%',
-    type: 'Petition',
-    avatar: 'https://ui-avatars.com/api/?name=Maria+Ivanova'
-  }
+  // your candidate data...
 ])
 
 const selectCard = (id) => {
@@ -52,16 +20,22 @@ const selectCard = (id) => {
 }
 
 const isSelected = (id) => selectedCard.value === id
-
 </script>
 
-<!--President, Deputat, Session Deputat, Petition-->
 
 <template>
   <div class="container">
     <header class="header">
       <img src="../assets/logoWh.svg" alt="logo" width="130" class="logo">
       <p>Home</p>
+
+      <router-link to="users">USERS</router-link>
+      <router-link to="candidates">Candidates</router-link>
+
+      <button @click="logout" class="bg-red-500 hover:bg-red-600 py-2 px-4 rounded-lg">
+        Logout
+      </button>
+
     </header>
 
     <div class="dashboard">

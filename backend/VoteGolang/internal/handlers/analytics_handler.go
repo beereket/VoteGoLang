@@ -19,6 +19,12 @@ type ElectionAnalytics struct {
 	Candidates []CandidateAnalytics `json:"candidates"`
 }
 
+type TopCandidateAnalytics struct {
+	PartyName     string `json:"party_name"`
+	CandidateName string `json:"candidate_name"`
+	TotalVotes    int    `json:"total_votes"`
+}
+
 func GetElectionAnalytics(w http.ResponseWriter, r *http.Request) {
 	var data ElectionAnalytics
 
@@ -202,12 +208,6 @@ func GetPartyPercentageAnalytics(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(parties)
 }
 
-type TopCandidate struct {
-	PartyName     string `json:"party_name"`
-	CandidateName string `json:"candidate_name"`
-	TotalVotes    int    `json:"total_votes"`
-}
-
 func GetTopCandidatesPerParty(w http.ResponseWriter, r *http.Request) {
 	rows, err := database.DB.Query(`
 		SELECT party, name, votes
@@ -222,7 +222,7 @@ func GetTopCandidatesPerParty(w http.ResponseWriter, r *http.Request) {
 	defer rows.Close()
 
 	partySeen := make(map[string]bool)
-	var topCandidates []TopCandidate
+	var topCandidates []TopCandidateAnalytics
 
 	for rows.Next() {
 		var party, name string
@@ -236,7 +236,7 @@ func GetTopCandidatesPerParty(w http.ResponseWriter, r *http.Request) {
 
 		// If party not already added ➔ this is top candidate
 		if !partySeen[party] {
-			topCandidates = append(topCandidates, TopCandidate{
+			topCandidates = append(topCandidates, TopCandidateAnalytics{
 				PartyName:     party,
 				CandidateName: name,
 				TotalVotes:    votes,

@@ -1,4 +1,3 @@
-<!-- components/BarChart.vue -->
 <template>
   <Bar :data="chartData" :options="chartOptions" />
 </template>
@@ -17,27 +16,23 @@ import {
 ChartJS.register(BarElement, CategoryScale, LinearScale, Tooltip, Legend)
 
 export default {
-  name: 'BarChart',
+  name: 'AnalyticsBarChart',
   components: { Bar },
   props: {
-    name: {
-      type: String,
-      required: true
-    },
-    percent: {
-      type: String,
+    data: {
+      type: Array,
       required: true
     }
   },
   computed: {
     chartData() {
       return {
-        labels: [this.name],
+        labels: this.data.map(item => item.party),
         datasets: [
           {
-            label: 'Votes (%)',
-            data: [parseFloat(this.percent)],
-            backgroundColor: 'lightblue',
+            label: 'Votes',
+            data: this.data.map(item => item.votes),
+            backgroundColor: 'rgba(54, 162, 235, 0.6)',
           },
         ],
       }
@@ -47,8 +42,7 @@ export default {
         responsive: true,
         scales: {
           y: {
-            min: 0,
-            max: 100,
+            beginAtZero: true,
             ticks: {
               stepSize: 10,
             },

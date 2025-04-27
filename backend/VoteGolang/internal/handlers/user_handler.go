@@ -71,7 +71,6 @@ func LoginUser(w http.ResponseWriter, r *http.Request) {
 	var role string
 	var deletedAt sql.NullTime
 
-	// ✅ Get user info
 	err := database.DB.QueryRow(`
 		SELECT id, password, role, deleted_at
 		FROM users
@@ -83,43 +82,36 @@ func LoginUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// ✅ Check if user is banned
 	if deletedAt.Valid {
 		http.Error(w, "❌ This account is banned.", http.StatusForbidden)
 		return
 	}
 
-	// ✅ Compare password
 	err = bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(input.Password))
 	if err != nil {
 		http.Error(w, "❌ Invalid username or password", http.StatusUnauthorized)
 		return
 	}
 
-	// ✅ Generate JWT Token
-	secret := os.Getenv("JWT_SECRET")
-	if secret == "" {
-		http.Error(w, "❌ Server config error", http.StatusInternalServerError)
-		return
-	}
-
 	claims := jwt.MapClaims{
 		"username": input.Username,
 		"role":     role,
-		"exp":      time.Now().Add(24 * time.Hour).Unix(), // expires in 24h
+		"exp":      time.Now().Add(24 * time.Hour).Unix(),
 	}
 
+	//fmt.Println("🔐 Backend JWT_SECRET:", os.Getenv("JWT_SECRET"))
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
-	tokenString, err := token.SignedString([]byte(secret))
+	tokenString, err := token.SignedString(jwtSecret)
 	if err != nil {
 		http.Error(w, "❌ Could not generate token", http.StatusInternalServerError)
 		return
 	}
 
-	// ✅ Send token back
+	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{
 		"token": tokenString,
+		"role":  role,
 	})
 }
 

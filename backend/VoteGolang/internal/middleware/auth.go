@@ -2,14 +2,13 @@ package middleware
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"os"
 	"strings"
 
 	"github.com/golang-jwt/jwt/v5"
 )
-
-var JwtSecret = []byte(os.Getenv("JWT_SECRET"))
 
 func AdminOnly(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -19,10 +18,13 @@ func AdminOnly(next http.Handler) http.Handler {
 			return
 		}
 
-		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
+		fmt.Println("🔍 Received Authorization Header:", authHeader)
+		tokenString := strings.TrimSpace(strings.TrimPrefix(authHeader, "Bearer "))
 
+		fmt.Println("🔍 Parsed Token String:", tokenString)
 		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-			return JwtSecret, nil
+			secret := os.Getenv("JWT_SECRET")
+			return []byte(secret), nil
 		})
 		if err != nil || !token.Valid {
 			http.Error(w, "❌ Invalid token", http.StatusUnauthorized)
