@@ -103,24 +103,27 @@ export default {
 .news-page {
   padding: 30px;
   font-family: 'Poppins', sans-serif;
+  min-height: 100vh;
+  background: #f7f9fb;
 }
 
 h1 {
   text-align: center;
   margin-bottom: 30px;
+  color: #2c3e50;
 }
 
 .create-form {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
   max-width: 500px;
-  margin: 0 auto 40px auto;
+  margin: 0 auto 50px auto;
 }
 
 .create-form input,
 .create-form textarea {
-  padding: 10px;
+  padding: 12px;
   border: 1px solid #ccc;
   border-radius: 8px;
   resize: none;
@@ -141,41 +144,63 @@ h1 {
 
 .news-list {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+  gap: 30px;
+  padding: 20px;
 }
 
 .news-card {
-  background: #fff;
-  border-radius: 12px;
+  background: white;
+  border-radius: 16px;
   overflow: hidden;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-  transition: 0.3s;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
 .news-card:hover {
-  transform: scale(1.02);
+  transform: translateY(-6px) scale(1.02);
+  box-shadow: 0 12px 20px rgba(0,0,0,0.15);
 }
 
 .news-photo {
   width: 100%;
-  height: 200px;
+  height: 250px;
   object-fit: cover;
 }
 
 .news-content {
-  padding: 15px;
+  padding: 20px;
 }
 
 .news-content h2 {
   margin-bottom: 10px;
+  font-size: 22px;
+  color: #333;
+}
+
+.news-content p {
+  font-size: 16px;
+  color: #555;
 }
 
 .news-meta {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: 15px;
+  margin-top: 20px;
+}
+
+.news-meta button {
+  background: #e74c3c;
+  border: none;
+  color: white;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.news-meta button:hover {
+  background: #c0392b;
 }
 
 .no-news {

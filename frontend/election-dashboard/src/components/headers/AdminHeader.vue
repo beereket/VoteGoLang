@@ -2,11 +2,11 @@
   <nav v-if="isAuthenticated" :class="['header', { 'shrink': isShrunk }]">
     <div class="logo">VoteGolang Admin 🗳️</div>
     <ul class="nav-links">
+      <li><router-link to="/">Home</router-link></li>
       <li><router-link to="/admin/dashboard">Dashboard</router-link></li>
-      <li><router-link to="/admin/candidates">Candidates</router-link></li>
       <li><router-link to="/admin/users">Users</router-link></li>
       <li><router-link to="/admin/analytics">Analytics</router-link></li>
-      <li><router-link to="/admin/elections">Petitions</router-link></li>
+      <li><router-link to="/admin/elections">Elections</router-link></li>
       <li><router-link to="/admin/news">News</router-link></li>
       <li><router-link to="/admin/logs">Logs</router-link></li>
       <li><button @click="logout">Logout</button></li>
@@ -18,7 +18,7 @@
 import { EventBus } from '@/services/eventBus.js';
 
 export default {
-  name: 'PageHeader',
+  name: 'AdminHeader',
   data() {
     return {
       isShrunk: false,

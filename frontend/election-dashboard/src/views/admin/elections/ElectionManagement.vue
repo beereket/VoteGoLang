@@ -29,6 +29,8 @@
           <div class="actions">
             <button @click="startEdit(election)">✏️ Edit</button>
             <button @click="deleteElection(election.id)">🗑️ Delete</button>
+            <router-link :to="`/admin/elections/${election.id}/candidates`" class="manage-btn">Candidates
+            </router-link>
           </div>
         </div>
       </div>
@@ -54,6 +56,7 @@
 
 <script>
 import api from '@/services/api';
+import Swal from 'sweetalert2';
 
 export default {
   name: "ElectionsManagement",
@@ -77,25 +80,46 @@ export default {
         console.error('❌ Failed to load elections', err);
       }
     },
+
     async createElection() {
       try {
-        await api.post('/admin/elections/create', this.newElection);
+        const payload = {
+          ...this.newElection,
+          election_date: new Date(this.newElection.election_date).toISOString()
+        };
+        await api.post('/admin/elections/create', payload);
         this.newElection = { name: '', description: '', election_date: '' };
         this.fetchElections();
+
+        Swal.fire({
+          icon: 'success',
+          title: 'Election Created!',
+          text: '✅ Your election has been successfully created.',
+          timer: 2000,
+          showConfirmButton: false,
+        });
+
       } catch (err) {
         console.error('❌ Failed to create election', err);
+
+        // ❌ Error SweetAlert
+        Swal.fire('Error', err.response?.data || 'Something went wrong!', 'error');
       }
     },
+
     async deleteElection(id) {
       if (confirm('Are you sure you want to delete this election?')) {
         try {
           await api.delete(`/admin/elections/delete/${id}`);
           this.fetchElections();
+          Swal.fire('Deleted!', 'Election has been deleted.', 'success');
         } catch (err) {
           console.error('❌ Failed to delete election', err);
+          Swal.fire('Error', err.response?.data || 'Failed to delete!', 'error');
         }
       }
     },
+
     startEdit(election) {
       this.editingElection = { ...election };
     },
@@ -104,13 +128,31 @@ export default {
     },
     async updateElection() {
       try {
-        await api.put(`/admin/elections/update/${this.editingElection.id}`, this.editingElection);
+        const payload = {
+          ...this.editingElection,
+          election_date: new Date(this.editingElection.election_date).toISOString()
+        };
+        await api.put(`/admin/elections/update/${this.editingElection.id}`, payload);
         this.editingElection = null;
         this.fetchElections();
+
+        // ✅ Success SweetAlert
+        Swal.fire({
+          icon: 'success',
+          title: 'Election Updated!',
+          text: '✅ Election changes saved successfully!',
+          timer: 2000,
+          showConfirmButton: false,
+        });
+
       } catch (err) {
         console.error('❌ Failed to update election', err);
+
+        // ❌ Error SweetAlert
+        Swal.fire('Error', err.response?.data || 'Failed to update election.', 'error');
       }
     },
+
     formatDate(dateStr) {
       const date = new Date(dateStr);
       return date.toLocaleDateString();
@@ -153,7 +195,7 @@ button {
   border-radius: 8px;
   cursor: pointer;
 }
-button:hover {
+button:hover, .manage-btn:hover {
   background-color: #2980b9;
 }
 .elections-list {
@@ -184,6 +226,15 @@ button:hover {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+.manage-btn {
+  padding: 8px 12px;
+  background-color: #27ae60;
+  color: white;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: bold;
+  margin-left: 8px;
 }
 .modal-content {
   background: white;

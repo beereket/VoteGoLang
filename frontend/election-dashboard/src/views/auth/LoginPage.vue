@@ -1,27 +1,15 @@
 <template>
-  <div class="login-container">
-    <div class="login-box">
-      <h2 class="login-title">Admin Login</h2>
+  <div class="auth-container">
+    <div class="auth-box">
+      <h2>Login 🔑</h2>
       <form @submit.prevent="login">
-        <div class="form-group">
-          <label>Username</label>
-          <input
-              v-model="username"
-              type="text"
-              required
-              placeholder="Enter your username"
-          />
-        </div>
-        <div class="form-group">
-          <label>Password</label>
-          <input
-              v-model="password"
-              type="password"
-              required
-              placeholder="Enter your password"
-          />
-        </div>
-        <button type="submit" class="login-button">Login</button>
+        <input v-model="username" type="text" placeholder="Username" required />
+        <input v-model="password" type="password" placeholder="Password" required />
+        <button type="submit" class="primary-btn">Login</button>
+        <p class="link-text">
+          Don't have an account?
+          <router-link to="/register">Register</router-link>
+        </p>
       </form>
     </div>
   </div>
@@ -29,7 +17,7 @@
 
 <script>
 import api from '@/services/api';
-import { EventBus } from '@/services/eventBus.js';
+import { EventBus } from '@/services/eventBus';
 
 export default {
   name: "LoginPage",
@@ -42,20 +30,21 @@ export default {
   methods: {
     async login() {
       try {
-        const response = await api.post('/users/login', {
+        const res = await api.post('/users/login', {
           username: this.username,
           password: this.password
         });
 
-        localStorage.setItem('token', response.data.token);
-        localStorage.setItem('role', response.data.role);
+        localStorage.setItem('token', res.data.token);
+        localStorage.setItem('role', res.data.role);
+        localStorage.setItem('user_id', res.data.user_id);
 
-        // Emit login event
         EventBus.$emit('logged-in');
-
-        this.$router.replace('/admin/dashboard');
-      } catch (error) {
-        alert('❌ Login failed! Check your credentials.');
+        if (this.$route.path !== '/') {
+          this.$router.replace('/');
+        }
+      } catch (err) {
+        alert('❌ Login failed. Check your credentials!');
       }
     }
   }
@@ -63,70 +52,65 @@ export default {
 </script>
 
 <style scoped>
-.login-container {
+.auth-container {
+  margin: 0;
+
   display: flex;
   align-items: center;
   justify-content: center;
   min-height: 100vh;
-  background-color: #f3f4f6;
+  background: linear-gradient(135deg, #74ebd5, #acb6e5);
 }
 
-.login-box {
-  background-color: #ffffff;
-  padding: 40px 30px;
-  border-radius: 10px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+.auth-box {
+  background: white;
+  padding: 40px;
+  border-radius: 16px;
   width: 100%;
   max-width: 400px;
-}
-
-.login-title {
-  font-size: 26px;
-  font-weight: bold;
-  margin-bottom: 25px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.1);
   text-align: center;
-  color: #333333;
 }
 
-.form-group {
+.auth-box h2 {
   margin-bottom: 20px;
+  color: #333;
 }
 
-.form-group label {
-  display: block;
-  font-weight: 600;
-  margin-bottom: 8px;
-  color: #555555;
+form {
+  display: flex;
+  flex-direction: column;
 }
 
-.form-group input {
-  width: 90%;
-  padding: 10px 12px;
+input {
+  margin-bottom: 15px;
+  padding: 12px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
   font-size: 16px;
-  border: 1px solid #cccccc;
-  border-radius: 6px;
-  outline: none;
-  transition: border-color 0.3s;
 }
 
-.form-group input:focus {
-  border-color: #4a90e2;
-}
-
-.login-button {
-  width: 100%;
+.primary-btn {
   padding: 12px;
   background-color: #4a90e2;
-  border: none;
-  border-radius: 6px;
   color: white;
-  font-weight: 600;
-  font-size: 16px;
+  border: none;
+  border-radius: 8px;
+  font-weight: bold;
   cursor: pointer;
-  transition: background-color 0.3s;
 }
 
-.login-button:hover {
+.primary-btn:hover {
   background-color: #3b7dd8;
+}
+
+.link-text {
+  margin-top: 15px;
+  font-size: 14px;
+}
+.link-text a {
+  color: #4a90e2;
+  font-weight: bold;
+  text-decoration: none;
 }
 </style>
