@@ -172,30 +172,6 @@ func BanUser(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func CleanDeleted(w http.ResponseWriter, r *http.Request) {
-	tables := []string{
-		"users",
-		"candidates",
-		"votes",
-		"petitions",
-		"petition_comments",
-		"general_news",
-	}
-
-	for _, table := range tables {
-		_, err := database.DB.Exec("DELETE FROM " + table + " WHERE deleted_at IS NOT NULL")
-		if err != nil {
-			http.Error(w, "❌ Failed to clean "+table, http.StatusInternalServerError)
-			return
-		}
-	}
-
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{
-		"message": "✅ Cleaned all soft-deleted records!",
-	})
-}
-
 func UnbanUser(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	idStr := vars["id"]
@@ -263,4 +239,85 @@ func ListAllUsers(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(users)
+}
+
+func CreateElection(w http.ResponseWriter, r *http.Request) {
+	var input models.Election
+
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		http.Error(w, "❌ Invalid input", http.StatusBadRequest)
+		return
+	}
+
+	_, err := database.DB.Exec(`
+		INSERT INTO elections (name, description, election_date, created_at, updated_at)
+		VALUES (?, ?, ?, ?, ?)`,
+		input.Name,
+		input.Description,
+		input.ElectionDate,
+		time.Now(),
+		time.Now(),
+	)
+	if err != nil {
+		http.Error(w, "❌ Failed to create election", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(map[string]string{"message": "✅ Election created successfully"})
+}
+
+func UpdateElection(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	idStr := vars["id"]
+
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "❌ Invalid election ID", http.StatusBadRequest)
+		return
+	}
+
+	var input models.Election
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		http.Error(w, "❌ Invalid input", http.StatusBadRequest)
+		return
+	}
+
+	_, err = database.DB.Exec(`
+		UPDATE elections
+		SET name = ?, description = ?, election_date = ?, updated_at = ?
+		WHERE id = ?`,
+		input.Name,
+		input.Description,
+		input.ElectionDate,
+		time.Now(),
+		id,
+	)
+	if err != nil {
+		http.Error(w, "❌ Failed to update election", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{"message": "✅ Election updated successfully"})
+}
+
+func DeleteElection(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	idStr := vars["id"]
+
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "❌ Invalid election ID", http.StatusBadRequest)
+		return
+	}
+
+	_, err = database.DB.Exec(`DELETE FROM elections WHERE id = ?`, id)
+	if err != nil {
+		http.Error(w, "❌ Failed to delete election", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{"message": "✅ Election deleted successfully"})
 }

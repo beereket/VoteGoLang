@@ -1,7 +1,7 @@
 <script>
 import api from "@/services/api";
 import { ref, onMounted } from "vue";
-import AnalyticsBarChart from "@/components/AnalyticsBarChart.vue";
+import AnalyticsBarChart from "@/components/charts/AnalyticsBarChart.vue";
 
 export default {
   name: "DashboardAnalytics",

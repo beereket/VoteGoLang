@@ -17,19 +17,17 @@ func RegisterRoutes() *mux.Router {
 	r.HandleFunc("/users/create", handlers.CreateUser).Methods("POST")
 	r.HandleFunc("/users/login", handlers.LoginUser).Methods("POST")
 
-	r.HandleFunc("/candidates", handlers.ListCandidates).Methods("GET")
-
-	r.HandleFunc("/results", handlers.ListElectionResults).Methods("GET")
-	r.HandleFunc("/votes/cast", handlers.VoteForCandidate).Methods("POST")
-	r.HandleFunc("/votes/history", handlers.GetUserVotingHistory).Methods("GET")
-
+	r.HandleFunc("/elections/{election_id}/candidates", handlers.ListCandidatesByElection).Methods("GET")
 	r.HandleFunc("/petitions", handlers.ListPetitions).Methods("GET")
-	r.HandleFunc("/petitions/{id}/comments", handlers.ListPetitionComments).Methods("GET")
-	r.HandleFunc("/petitions/comments/create", handlers.CreatePetitionComment).Methods("POST")
-	r.HandleFunc("/petitions/comments/vote/{id}", handlers.VoteOnComment).Methods("POST")
-	r.HandleFunc("/petitions/vote", handlers.VoteOnPetition).Methods("POST")
-	r.HandleFunc("/petitions/voting-result", handlers.GetPetitionVoteResult).Methods("GET")
-	r.HandleFunc("/petitions/voting-history", handlers.GetUserPetitionVotingHistory).Methods("GET")
+	r.HandleFunc("/petitions/{id}", handlers.GetPetitionByID).Methods("GET")
+	r.HandleFunc("/petitions/{id}/results", handlers.GetPetitionResults).Methods("GET")
+
+	r.HandleFunc("/elections", handlers.ListElections).Methods("GET")
+	r.HandleFunc("/elections/{id}", handlers.GetElectionDetail).Methods("GET")
+	r.HandleFunc("/elections/{id}/results", handlers.GetElectionResults).Methods("GET")
+
+	r.Handle("/petitions/vote", middleware.UserAuthMiddleware(http.HandlerFunc(handlers.VoteOnPetition))).Methods("POST")
+	r.Handle("/votes/cast", middleware.UserAuthMiddleware(http.HandlerFunc(handlers.VoteForCandidate))).Methods("POST")
 
 	admin := r.PathPrefix("/admin").Subrouter()
 	admin.Use(middleware.AdminOnly)
@@ -40,11 +38,17 @@ func RegisterRoutes() *mux.Router {
 	admin.HandleFunc("/dashboard/votes-per-day", handlers.GetVotesPerDay).Methods("GET")
 	admin.HandleFunc("/dashboard/users-per-week", handlers.GetUserRegistrationsPerWeek).Methods("GET")
 	admin.HandleFunc("/analytics/top-candidates", handlers.GetTopCandidatesPerParty).Methods("GET")
-
 	admin.HandleFunc("/analytics/election", handlers.GetElectionAnalytics).Methods("GET")
 	admin.HandleFunc("/analytics/candidates", handlers.GetCandidateAnalytics).Methods("GET")
 	admin.HandleFunc("/analytics/party", handlers.GetPartyAnalytics).Methods("GET")
 	admin.HandleFunc("/analytics/party-percentage", handlers.GetPartyPercentageAnalytics).Methods("GET")
+
+	admin.HandleFunc("/elections", handlers.ListElections).Methods("GET")
+	admin.HandleFunc("/elections/{election_id}/full", handlers.GetElectionWithCandidates).Methods("GET")
+	admin.HandleFunc("/elections/create", handlers.CreateElection).Methods("POST")
+	admin.HandleFunc("/elections/update/{id}", handlers.UpdateElection).Methods("PUT")
+	admin.HandleFunc("/elections/delete/{id}", handlers.DeleteElection).Methods("DELETE")
+	admin.HandleFunc("/candidates/create", handlers.DeleteElection).Methods("POST")
 
 	admin.HandleFunc("/stats/users", handlers.GetTotalUsers).Methods("GET")
 	admin.HandleFunc("/stats/votes", handlers.GetTotalVotes).Methods("GET")
@@ -57,19 +61,16 @@ func RegisterRoutes() *mux.Router {
 	admin.HandleFunc("/users/admins", handlers.ListAdminUsers).Methods("GET")
 	admin.HandleFunc("/users/create-admin", handlers.CreateAdminUser).Methods("POST")
 
+	admin.HandleFunc("/petitions/create", handlers.CreatePetition).Methods("POST")
+	admin.HandleFunc("/petitions/close", handlers.ClosePetition).Methods("PUT")
+	admin.HandleFunc("/petitions/delete/{id}", handlers.DeletePetition).Methods("DELETE")
+
 	admin.HandleFunc("/candidates/create", handlers.CreateCandidate).Methods("POST")
 	admin.HandleFunc("/candidates/update/{id}", handlers.UpdateCandidate).Methods("PUT")
 	admin.HandleFunc("/candidates/delete/{id}", handlers.DeleteCandidate).Methods("DELETE")
 
-	admin.HandleFunc("/petitions/create", handlers.CreatePetition).Methods("POST")
-	admin.HandleFunc("/petitions/update/{id}", handlers.UpdatePetition).Methods("PUT")
-	admin.HandleFunc("/petitions/delete/{id}", handlers.DeletePetition).Methods("DELETE")
-	admin.HandleFunc("/petitions/comments/delete/{id}", handlers.DeletePetitionComment).Methods("DELETE")
-
 	admin.HandleFunc("/news/create", handlers.CreateNews).Methods("POST")
 	admin.HandleFunc("/news/delete/{id}", handlers.DeleteNews).Methods("DELETE")
-
-	admin.HandleFunc("/clean-deleted", handlers.CleanDeleted).Methods("DELETE")
 
 	return r
 }

@@ -6,7 +6,7 @@
       <li><router-link to="/admin/candidates">Candidates</router-link></li>
       <li><router-link to="/admin/users">Users</router-link></li>
       <li><router-link to="/admin/analytics">Analytics</router-link></li>
-      <li><router-link to="/admin/petitions">Petitions</router-link></li>
+      <li><router-link to="/admin/elections">Petitions</router-link></li>
       <li><router-link to="/admin/news">News</router-link></li>
       <li><router-link to="/admin/logs">Logs</router-link></li>
       <li><button @click="logout">Logout</button></li>
@@ -29,6 +29,7 @@ export default {
     logout() {
       localStorage.removeItem('token');
       localStorage.removeItem('role');
+      localStorage.removeItem('user_id')
       this.isAuthenticated = false;
       this.$router.replace('/login');
     },
@@ -93,7 +94,7 @@ export default {
   display: flex;
   gap: 20px;
   margin: 0;
-  padding: 0;
+  padding: 40px;
 }
 
 .nav-links a, .nav-links button {

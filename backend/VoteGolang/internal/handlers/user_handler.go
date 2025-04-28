@@ -3,13 +3,15 @@ package handlers
 import (
 	"database/sql"
 	"encoding/json"
-	"github.com/golang-jwt/jwt/v5"
+	"fmt"
 	"net/http"
 	"os"
 	"time"
 
 	"VoteGolang/internal/database"
 	"VoteGolang/internal/models"
+	"VoteGolang/internal/service"
+	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -32,7 +34,7 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 	VALUES (?, ?, ?, ?, ?, ?, ?)
 	`
 
-	_, err = database.DB.Exec(query,
+	res, err := database.DB.Exec(query,
 		user.Username,
 		user.UserFullName,
 		hashedPassword,
@@ -46,6 +48,10 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "❌ Failed to create user", http.StatusInternalServerError)
 		return
 	}
+
+	userID, _ := res.LastInsertId()
+
+	service.CreateActivityLog(int(userID), "registration", fmt.Sprintf("User '%s' registered", user.Username))
 
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(map[string]string{"message": "✅ User created"})
@@ -94,12 +100,12 @@ func LoginUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	claims := jwt.MapClaims{
+		"user_id":  id,
 		"username": input.Username,
 		"role":     role,
 		"exp":      time.Now().Add(24 * time.Hour).Unix(),
 	}
 
-	//fmt.Println("🔐 Backend JWT_SECRET:", os.Getenv("JWT_SECRET"))
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
 	tokenString, err := token.SignedString(jwtSecret)
@@ -107,6 +113,8 @@ func LoginUser(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "❌ Could not generate token", http.StatusInternalServerError)
 		return
 	}
+
+	service.CreateActivityLog(id, "login", fmt.Sprintf("User '%s' logged in", input.Username))
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{
@@ -134,7 +142,7 @@ func CreateAdminUser(w http.ResponseWriter, r *http.Request) {
 	VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 	`
 
-	_, err = database.DB.Exec(query,
+	res, err := database.DB.Exec(query,
 		user.Username,
 		user.UserFullName,
 		hashedPassword,
@@ -149,6 +157,10 @@ func CreateAdminUser(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "❌ Failed to create admin user", http.StatusInternalServerError)
 		return
 	}
+
+	userID, _ := res.LastInsertId()
+
+	service.CreateActivityLog(int(userID), "admin_registration", fmt.Sprintf("Admin user '%s' registered", user.Username))
 
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(map[string]string{"message": "✅ Admin user created"})

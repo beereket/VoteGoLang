@@ -1,125 +1,69 @@
 package handlers
 
 import (
+	"VoteGolang/internal/service"
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"VoteGolang/internal/database"
-	"VoteGolang/internal/service"
 )
 
-var votingService = &service.VotingService{} // service instance
-
-type VoteInput struct {
+type VoteRequest struct {
 	CandidateID   int    `json:"candidate_id"`
 	CandidateType string `json:"candidate_type"`
 }
 
 func VoteForCandidate(w http.ResponseWriter, r *http.Request) {
-	var input VoteInput
+	userIDInterface := r.Context().Value("user_id")
+	if userIDInterface == nil {
+		http.Error(w, "❌ Unauthorized", http.StatusUnauthorized)
+		return
+	}
+	userID := userIDInterface.(int)
+	fmt.Println(userID)
 
-	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-		http.Error(w, "❌ Invalid input", http.StatusBadRequest)
+	var req VoteRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "❌ Invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	username := r.Context().Value("username").(string)
+	var count int
+	err := database.DB.QueryRow(`
+		SELECT COUNT(*)
+		FROM votes
+		WHERE user_id = ? AND candidate_type = ?
+	`, userID, req.CandidateType).Scan(&count)
 
-	var userID int
-	err := database.DB.QueryRow("SELECT id FROM users WHERE username = ?", username).Scan(&userID)
 	if err != nil {
-		http.Error(w, "❌ User not found", http.StatusUnauthorized)
+		http.Error(w, "❌ Failed to check previous vote", http.StatusInternalServerError)
 		return
 	}
 
-	err = votingService.CastVote(userID, input.CandidateID, input.CandidateType)
+	if count > 0 {
+		http.Error(w, "⚠️ You have already voted for this election", http.StatusForbidden)
+		return
+	}
+
+	// Insert vote
+	_, err = database.DB.Exec(`
+		INSERT INTO votes (user_id, candidate_id, candidate_type, created_at, updated_at)
+		VALUES (?, ?, ?, NOW(), NOW())
+	`, userID, req.CandidateID, req.CandidateType)
+
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, "❌ Failed to save vote", http.StatusInternalServerError)
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
+	logErr := service.CreateActivityLog(userID, "vote", fmt.Sprintf("Voted for candidate ID %d in %s election", req.CandidateID, req.CandidateType))
+	if logErr != nil {
+		fmt.Println("⚠️ Failed to log activity:", logErr)
+	}
+
+	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(map[string]string{
-		"message": "✅ Vote cast successfully!",
+		"message": "✅ Vote cast successfully",
 	})
-}
-
-type CandidateResult struct {
-	ID    int    `json:"id"`
-	Name  string `json:"name"`
-	Party string `json:"party"`
-	Votes int    `json:"votes"`
-}
-
-func ListElectionResults(w http.ResponseWriter, r *http.Request) {
-	rows, err := database.DB.Query(`
-		SELECT id, name, party, votes
-		FROM candidates
-		WHERE deleted_at IS NULL
-		ORDER BY votes DESC
-	`)
-	if err != nil {
-		http.Error(w, "❌ Failed to fetch results", http.StatusInternalServerError)
-		return
-	}
-	defer rows.Close()
-
-	var results []CandidateResult
-
-	for rows.Next() {
-		var c CandidateResult
-		err := rows.Scan(&c.ID, &c.Name, &c.Party, &c.Votes)
-		if err != nil {
-			http.Error(w, "❌ Error reading results", http.StatusInternalServerError)
-			return
-		}
-		results = append(results, c)
-	}
-
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(results)
-}
-
-type UserVote struct {
-	CandidateName  string `json:"candidate_name"`
-	CandidatePhoto string `json:"candidate_photo"`
-	CandidateType  string `json:"candidate_type"`
-}
-
-func GetUserVotingHistory(w http.ResponseWriter, r *http.Request) {
-	username := r.Context().Value("username").(string)
-
-	var userID int
-	err := database.DB.QueryRow("SELECT id FROM users WHERE username = ?", username).Scan(&userID)
-	if err != nil {
-		http.Error(w, "❌ User not found", http.StatusUnauthorized)
-		return
-	}
-
-	rows, err := database.DB.Query(`
-		SELECT c.name, c.photo, v.candidate_type
-		FROM votes v
-		JOIN candidates c ON v.candidate_id = c.id
-		WHERE v.user_id = ? AND v.deleted_at IS NULL
-	`, userID)
-
-	if err != nil {
-		http.Error(w, "❌ Failed to fetch voting history", http.StatusInternalServerError)
-		return
-	}
-	defer rows.Close()
-
-	var history []UserVote
-
-	for rows.Next() {
-		var uv UserVote
-		if err := rows.Scan(&uv.CandidateName, &uv.CandidatePhoto, &uv.CandidateType); err != nil {
-			http.Error(w, "❌ Error reading voting history", http.StatusInternalServerError)
-			return
-		}
-		history = append(history, uv)
-	}
-
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(history)
 }

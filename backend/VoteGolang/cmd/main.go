@@ -1,6 +1,7 @@
 package main
 
 import (
+	"VoteGolang/internal/background"
 	"VoteGolang/internal/middleware"
 	"log"
 	"net/http"
@@ -17,6 +18,7 @@ func main() {
 	r := routes.RegisterRoutes()
 
 	handler := middleware.CORSMiddleware(r)
+	background.StartElectionAutoCloser()
 
 	log.Println("🚀 Server running at http://localhost:8080")
 	log.Fatal(http.ListenAndServe(":8080", handler))

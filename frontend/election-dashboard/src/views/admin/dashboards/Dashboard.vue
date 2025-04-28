@@ -5,7 +5,6 @@
       <p>Welcome back, Admin! 💪</p>
     </header>
 
-    <!-- Summary Cards -->
     <div class="summary-cards">
       <div v-for="card in summaryCards" :key="card.title" class="card">
         <div class="card-value">{{ card.value }}</div>
@@ -13,38 +12,42 @@
       </div>
     </div>
 
+    <!-- Charts -->
     <div class="charts">
-      <div class="chart-container">
+      <div class="chart-container" v-if="votesPerDayData">
         <h2>Votes Per Day 📈</h2>
-        <BarChart :chart-data="votesPerDayData" :chart-options="barChartOptions" />
+        <BarChart :chart-data="votesPerDayData" />
       </div>
-      <div class="chart-container">
+
+      <div class="chart-container" v-if="usersPerWeekData">
         <h2>User Registrations Per Week 📅</h2>
-        <BarChart :chart-data="usersPerWeekData" :chart-options="barChartOptions" />
+        <BarChart :chart-data="usersPerWeekData" />
       </div>
     </div>
 
+    <!-- Analytics -->
     <div class="charts">
-      <div class="chart-container">
+      <div class="chart-container" v-if="topCandidatesData">
         <h2>Top Candidates 🏆</h2>
-        <PieChart :chart-data="topCandidatesData" :chart-options="pieChartOptions" />
+        <PartyVotesPieChart :data="topCandidatesData" />
       </div>
-      <div class="chart-container">
+
+      <div class="chart-container" v-if="partyAnalyticsData">
         <h2>Party Analytics 🌟</h2>
-        <BarChart :chart-data="partyAnalyticsData" :chart-options="barChartOptions" />
+        <BarChart :chart-data="partyAnalyticsData" />
       </div>
     </div>
   </div>
 </template>
 
 <script>
-import BarChart from '@/components/BarChart.vue';
-import PieChart from '@/components/PartyVotesPieChart.vue';
 import api from '@/services/api';
+import BarChart from "@/components/charts/BarChart.vue";
+import PartyVotesPieChart from "@/components/charts/PartyVotesPieChart.vue";
 
 export default {
   name: 'DashboardPage',
-  components: { BarChart, PieChart },
+  components: {BarChart, PartyVotesPieChart},
   data() {
     return {
       summaryCards: [],
@@ -52,68 +55,6 @@ export default {
       usersPerWeekData: null,
       topCandidatesData: null,
       partyAnalyticsData: null,
-    }
-  },
-  computed: {
-    barChartOptions() {
-      return {
-        responsive: true,
-        animation: {
-          duration: 1500,
-          easing: 'easeInOutCubic'
-        },
-        hover: {
-          mode: 'index',
-          intersect: false,
-          animationDuration: 400
-        },
-        plugins: {
-          legend: {
-            position: 'bottom',
-            labels: {
-              color: '#333',
-              font: { size: 14, weight: 'bold' }
-            }
-          },
-          tooltip: {
-            backgroundColor: '#2d3748',
-            titleColor: '#fff',
-            bodyColor: '#fff',
-            padding: 10,
-            cornerRadius: 8,
-          }
-        },
-        scales: {
-          y: {
-            beginAtZero: true
-          }
-        }
-      }
-    },
-    pieChartOptions() {
-      return {
-        responsive: true,
-        animation: {
-          duration: 1500,
-          easing: 'easeInOutCubic'
-        },
-        plugins: {
-          legend: {
-            position: 'bottom',
-            labels: {
-              color: '#333',
-              font: { size: 14, weight: 'bold' }
-            }
-          },
-          tooltip: {
-            backgroundColor: '#2d3748',
-            titleColor: '#fff',
-            bodyColor: '#fff',
-            padding: 10,
-            cornerRadius: 8,
-          }
-        }
-      }
     }
   },
   methods: {
@@ -124,16 +65,16 @@ export default {
           {title: 'Total Users', value: dashboardRes.data.total_users},
           {title: 'Total Votes', value: dashboardRes.data.total_votes},
           {title: 'Total Candidates', value: dashboardRes.data.total_candidates},
-          {title: 'Top Candidate', value: dashboardRes.data.top_candidates[0]?.name || 'N/A'},
+          {title: 'Top Candidates', value: dashboardRes.data.top_candidates.length},
         ];
 
         const votesRes = await api.get('/admin/dashboard/votes-per-day');
         this.votesPerDayData = {
-          labels: votesRes.data.map(d => new Date(d.date).toLocaleDateString()),
+          labels: votesRes.data.map(d => d.date.split('T')[0]),
           datasets: [{
             label: 'Votes',
             data: votesRes.data.map(d => d.count),
-            backgroundColor: '#4CAF50',
+            backgroundColor: 'skyblue',
           }]
         };
 
@@ -143,7 +84,7 @@ export default {
           datasets: [{
             label: 'New Users',
             data: usersRes.data.map(d => d.count),
-            backgroundColor: '#36A2EB',
+            backgroundColor: 'lightgreen',
           }]
         };
 
@@ -153,10 +94,7 @@ export default {
           datasets: [{
             label: 'Votes',
             data: topCandidatesRes.data.map(d => d.total_votes),
-            backgroundColor: [
-              '#3490dc', '#9561e2', '#f66d9b', '#38c172', '#ffed4a', '#ff9f40', '#00ACC1'
-            ],
-            hoverOffset: 12
+            backgroundColor: ['#3490dc', '#9561e2', '#f66d9b', '#38c172', '#ffed4a', '#e3342f', '#6cb2eb'],
           }]
         };
 
@@ -166,12 +104,12 @@ export default {
           datasets: [{
             label: 'Total Votes',
             data: partyAnalyticsRes.data.map(d => d.total_votes),
-            backgroundColor: '#FF6384',
-            hoverBackgroundColor: '#FF9F40'
+            backgroundColor: 'coral',
           }]
         };
+
       } catch (err) {
-        console.error('Failed to load dashboard data', err);
+        console.error('❌ Failed to load dashboard data', err);
       }
     }
   },
@@ -184,57 +122,52 @@ export default {
 <style scoped>
 .dashboard {
   padding: 50px;
-  background: linear-gradient(to right, #e0eafc, #cfdef3);
+  background: #f0f2f5;
   min-height: 100vh;
 }
 
 header {
   margin-bottom: 30px;
-  text-align: center;
 }
 
 h1 {
   font-size: 36px;
-  font-weight: bold;
   color: #333;
 }
 
 p {
-  color: #666;
-  font-size: 18px;
+  color: #777;
 }
 
 .summary-cards {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 20px;
-  margin: 40px 0;
+  margin-bottom: 40px;
 }
 
 .card {
-  background: #ffffff;
-  padding: 20px;
+  background: #fff;
   border-radius: 15px;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+  padding: 20px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   transition: 0.3s;
-  text-align: center;
 }
 
 .card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 10px 28px rgba(0,0,0,0.15);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+  transform: translateY(-3px);
 }
 
 .card-value {
-  font-size: 30px;
+  font-size: 28px;
   font-weight: bold;
   margin-bottom: 8px;
-  color: #333;
+  color: #222;
 }
 
 .card-title {
-  color: #888;
-  font-size: 16px;
+  color: #777;
 }
 
 .charts {
@@ -248,6 +181,12 @@ p {
   background: #fff;
   padding: 20px;
   border-radius: 15px;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+h2 {
+  font-size: 20px;
+  margin-bottom: 15px;
+  color: #555;
 }
 </style>
