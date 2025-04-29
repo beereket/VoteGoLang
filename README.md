@@ -4,7 +4,6 @@ A full-stack **Online Voting System** built with:
 
 - 🛠️ **Golang** (Backend API)
 - 💃 **Vue.js** (Frontend SPA)
-- 💃 **Chart.js** (for beautiful charts)
 - 📃 **MySQL** (Database)
 
 ---
