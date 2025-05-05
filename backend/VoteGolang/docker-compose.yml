@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   mysql:
     image: mysql:8
@@ -13,20 +11,6 @@ services:
     volumes:
       - mysql_data:/var/lib/mysql
 
-  backend:
-    build: .
-    container_name: vote_backend
-    ports:
-      - "8080:8080"
-    environment:
-      DB_USERNAME: root
-      DB_PASSWORD: SECRET_PASSWORD
-      DB_HOST: mysql
-      DB_PORT: 3306
-      DB_NAME: vote_database
-      JWT_SECRET: 4a2e13a47b53cb6e85cfba0fc1d34f82ad6aa5b7418d19872a5d2e6b9d9a5042
-    depends_on:
-      - mysql
 
 volumes:
   mysql_data:

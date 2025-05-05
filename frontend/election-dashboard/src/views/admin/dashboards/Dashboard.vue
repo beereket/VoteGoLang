@@ -70,7 +70,7 @@ export default {
 
         const votesRes = await api.get('/admin/dashboard/votes-per-day');
         this.votesPerDayData = {
-          labels: votesRes.data.map(d => d.date.split('T')[0]),
+          labels: votesRes.data.map(d => d.date),
           datasets: [{
             label: 'Votes',
             data: votesRes.data.map(d => d.count),
