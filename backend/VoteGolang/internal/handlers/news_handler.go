@@ -1,121 +1,65 @@
 package handlers
 
 import (
-	"VoteGolang/internal/models"
+	"VoteGolang/internal/domain"
+	"VoteGolang/internal/service"
 	"encoding/json"
 	"github.com/gorilla/mux"
 	"net/http"
 	"strconv"
-	"time"
-
-	"VoteGolang/internal/database"
 )
 
-func ListNews(w http.ResponseWriter, r *http.Request) {
-	// Get query params
+type NewsHandler struct {
+	Service *service.NewsService
+}
+
+func NewNewsHandler(s *service.NewsService) *NewsHandler {
+	return &NewsHandler{Service: s}
+}
+
+func (h *NewsHandler) List(w http.ResponseWriter, r *http.Request) {
 	pageStr := r.URL.Query().Get("page")
 	limitStr := r.URL.Query().Get("limit")
 
-	page := 1
-	limit := 10
-
-	if pageStr != "" {
-		if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
-			page = p
-		}
+	page, limit := 1, 10
+	if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
+		page = p
+	}
+	if l, err := strconv.Atoi(limitStr); err == nil && l > 0 {
+		limit = l
 	}
 
-	if limitStr != "" {
-		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 {
-			limit = l
-		}
-	}
-
-	offset := (page - 1) * limit
-
-	// Query news with LIMIT and OFFSET
-	rows, err := database.DB.Query(`
-		SELECT id, title, paragraph, photo, created_at
-		FROM general_news
-		WHERE deleted_at IS NULL
-		ORDER BY created_at DESC
-		LIMIT ? OFFSET ?
-	`, limit, offset)
-
+	news, err := h.Service.List(page, limit)
 	if err != nil {
 		http.Error(w, "❌ Failed to fetch news", http.StatusInternalServerError)
 		return
 	}
-	defer rows.Close()
-
-	var newsList []models.News
-
-	for rows.Next() {
-		var n models.News
-		if err := rows.Scan(&n.ID, &n.Title, &n.Paragraph, &n.Photo, &n.CreatedAt); err != nil {
-			http.Error(w, "❌ Error reading news", http.StatusInternalServerError)
-			return
-		}
-		newsList = append(newsList, n)
-	}
-
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(newsList)
+	json.NewEncoder(w).Encode(news)
 }
 
-type CreateNewsInput struct {
-	Title     string `json:"title"`
-	Paragraph string `json:"paragraph"`
-	Photo     string `json:"photo"`
-}
-
-func CreateNews(w http.ResponseWriter, r *http.Request) {
-	var input CreateNewsInput
-
+func (h *NewsHandler) Create(w http.ResponseWriter, r *http.Request) {
+	var input domain.CreateNewsInput
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
 		http.Error(w, "❌ Invalid input", http.StatusBadRequest)
 		return
 	}
-
-	_, err := database.DB.Exec(`
-		INSERT INTO general_news (title, paragraph, photo, created_at, updated_at)
-		VALUES (?, ?, ?, ?, ?)
-	`, input.Title, input.Paragraph, input.Photo, time.Now(), time.Now())
-
-	if err != nil {
+	if err := h.Service.Create(input); err != nil {
 		http.Error(w, "❌ Failed to create news", http.StatusInternalServerError)
 		return
 	}
-
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(map[string]string{
-		"message": "✅ News article created!",
-	})
+	json.NewEncoder(w).Encode(map[string]string{"message": "✅ News article created!"})
 }
 
-func DeleteNews(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	idStr := vars["id"]
-
+func (h *NewsHandler) Delete(w http.ResponseWriter, r *http.Request) {
+	idStr := mux.Vars(r)["id"]
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
 		http.Error(w, "❌ Invalid news ID", http.StatusBadRequest)
 		return
 	}
-
-	_, err = database.DB.Exec(`
-		UPDATE general_news
-		SET deleted_at = NOW()
-		WHERE id = ? AND deleted_at IS NULL
-	`, id)
-
-	if err != nil {
+	if err := h.Service.Delete(id); err != nil {
 		http.Error(w, "❌ Failed to delete news", http.StatusInternalServerError)
 		return
 	}
-
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{
-		"message": "✅ News deleted successfully",
-	})
+	json.NewEncoder(w).Encode(map[string]string{"message": "✅ News deleted successfully"})
 }

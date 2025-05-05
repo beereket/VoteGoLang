@@ -1,198 +1,117 @@
 package handlers
 
 import (
-	"VoteGolang/internal/database"
-	"VoteGolang/internal/models"
+	"VoteGolang/internal/domain"
+	"VoteGolang/internal/service"
 	"encoding/json"
 	"github.com/gorilla/mux"
 	"net/http"
+	"strconv"
 )
 
-func ListElections(w http.ResponseWriter, r *http.Request) {
-	rows, err := database.DB.Query(`
-		SELECT id, name, description, election_date, created_at, updated_at
-		FROM elections
-		ORDER BY election_date ASC
-	`)
+type ElectionHandler struct {
+	Service *service.ElectionService
+}
+
+func NewElectionHandler(s *service.ElectionService) *ElectionHandler {
+	return &ElectionHandler{Service: s}
+}
+
+func (h *ElectionHandler) List(w http.ResponseWriter, r *http.Request) {
+	elections, err := h.Service.List()
 	if err != nil {
 		http.Error(w, "❌ Failed to fetch elections", http.StatusInternalServerError)
 		return
 	}
-	defer rows.Close()
-
-	var elections []models.Election
-
-	for rows.Next() {
-		var e models.Election
-		err := rows.Scan(&e.ID, &e.Name, &e.Description, &e.ElectionDate, &e.CreatedAt, &e.UpdatedAt)
-		if err != nil {
-			http.Error(w, "❌ Error reading election", http.StatusInternalServerError)
-			return
-		}
-		elections = append(elections, e)
-	}
-
-	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(elections)
 }
 
-func GetElectionDetail(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	electionID := vars["id"]
+func (h *ElectionHandler) Get(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.Atoi(mux.Vars(r)["id"])
+	if err != nil {
+		http.Error(w, "❌ Invalid election ID", http.StatusBadRequest)
+		return
+	}
+	election, err := h.Service.Get(id)
+	if err != nil {
+		http.Error(w, "❌ Election not found", http.StatusNotFound)
+		return
+	}
+	json.NewEncoder(w).Encode(election)
+}
 
-	// Fetch election info
-	var election models.Election
-	err := database.DB.QueryRow(`
-		SELECT id, name, description, election_date, created_at, updated_at
-		FROM elections
-		WHERE id = ?
-	`, electionID).Scan(&election.ID, &election.Name, &election.Description, &election.ElectionDate, &election.CreatedAt, &election.UpdatedAt)
+func (h *ElectionHandler) Create(w http.ResponseWriter, r *http.Request) {
+	var input domain.Election
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		http.Error(w, "❌ Invalid input", http.StatusBadRequest)
+		return
+	}
+	if err := h.Service.Create(input); err != nil {
+		http.Error(w, "❌ Failed to create election", http.StatusInternalServerError)
+		return
+	}
+	json.NewEncoder(w).Encode(map[string]string{"message": "✅ Election created successfully"})
+}
 
+func (h *ElectionHandler) Update(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.Atoi(mux.Vars(r)["id"])
+	if err != nil {
+		http.Error(w, "❌ Invalid election ID", http.StatusBadRequest)
+		return
+	}
+	var input domain.Election
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		http.Error(w, "❌ Invalid input", http.StatusBadRequest)
+		return
+	}
+	if err := h.Service.Update(id, input); err != nil {
+		http.Error(w, "❌ Failed to update election", http.StatusInternalServerError)
+		return
+	}
+	json.NewEncoder(w).Encode(map[string]string{"message": "✅ Election updated successfully"})
+}
+
+func (h *ElectionHandler) Delete(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.Atoi(mux.Vars(r)["id"])
+	if err != nil {
+		http.Error(w, "❌ Invalid election ID", http.StatusBadRequest)
+		return
+	}
+	if err := h.Service.Delete(id); err != nil {
+		http.Error(w, "❌ Failed to delete election", http.StatusInternalServerError)
+		return
+	}
+	json.NewEncoder(w).Encode(map[string]string{"message": "✅ Election deleted successfully"})
+}
+
+func (h *ElectionHandler) GetWithCandidates(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.Atoi(mux.Vars(r)["election_id"])
+	if err != nil {
+		http.Error(w, "❌ Invalid election ID", http.StatusBadRequest)
+		return
+	}
+
+	data, err := h.Service.GetWithCandidates(id)
 	if err != nil {
 		http.Error(w, "❌ Election not found", http.StatusNotFound)
 		return
 	}
 
-	// Fetch candidates linked to election
-	candidateRows, err := database.DB.Query(`
-		SELECT id, name, photo, education, age, party, region, votes, election_id, type, created_at, updated_at
-		FROM candidates
-		WHERE election_id = ?
-	`, electionID)
-	if err != nil {
-		http.Error(w, "❌ Failed to fetch candidates", http.StatusInternalServerError)
-		return
-	}
-	defer candidateRows.Close()
-
-	var candidates []models.Candidate
-	for candidateRows.Next() {
-		var c models.Candidate
-		err := candidateRows.Scan(
-			&c.ID,
-			&c.Name,
-			&c.Photo,
-			&c.Education,
-			&c.Age,
-			&c.Party,
-			&c.Region,
-			&c.Votes,
-			&c.ElectionID,
-			&c.Type,
-			&c.CreatedAt,
-			&c.UpdatedAt,
-		)
-		if err != nil {
-			http.Error(w, "❌ Error reading candidate", http.StatusInternalServerError)
-			return
-		}
-		candidates = append(candidates, c)
-	}
-
-	userIDInterface := r.Context().Value("user_id")
-	var alreadyVoted bool
-	if userIDInterface != nil {
-		userID := userIDInterface.(int)
-
-		var count int
-		err := database.DB.QueryRow(`
-			SELECT COUNT(*)
-			FROM votes
-			WHERE user_id = ? AND election_id = ?
-		`, userID, electionID).Scan(&count)
-
-		if err == nil && count > 0 {
-			alreadyVoted = true
-		}
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"election":     election,
-		"candidates":   candidates,
-		"alreadyVoted": alreadyVoted,
-	})
+	json.NewEncoder(w).Encode(data)
 }
 
-func GetElectionWithCandidates(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	electionID := vars["election_id"]
-
-	var election models.Election
-	err := database.DB.QueryRow(`
-        SELECT id, name, description, election_date
-        FROM elections
-        WHERE id = ?
-    `, electionID).Scan(&election.ID, &election.Name, &election.Description, &election.ElectionDate)
-
+func (h *ElectionHandler) GetResults(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.Atoi(mux.Vars(r)["id"])
 	if err != nil {
-		http.Error(w, "❌ Election not found", http.StatusNotFound)
+		http.Error(w, "❌ Invalid election ID", http.StatusBadRequest)
 		return
 	}
 
-	rows, err := database.DB.Query(`
-        SELECT id, name, party, region, age, type, votes
-        FROM candidates
-        WHERE election_id = ?
-    `, electionID)
-
+	results, err := h.Service.GetResults(id)
 	if err != nil {
-		http.Error(w, "❌ Failed to fetch candidates", http.StatusInternalServerError)
+		http.Error(w, "❌ Failed to fetch results", http.StatusInternalServerError)
 		return
 	}
-	defer rows.Close()
 
-	var candidates []models.Candidate
-	for rows.Next() {
-		var c models.Candidate
-		err := rows.Scan(&c.ID, &c.Name, &c.Party, &c.Region, &c.Age, &c.Type, &c.Votes)
-		if err != nil {
-			http.Error(w, "❌ Error reading candidate", http.StatusInternalServerError)
-			return
-		}
-		candidates = append(candidates, c)
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"election":   election,
-		"candidates": candidates,
-	})
-}
-
-func GetElectionResults(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	electionID := vars["id"]
-
-	rows, err := database.DB.Query(`
-		SELECT name, party, votes
-		FROM candidates
-		WHERE election_id = ?
-		ORDER BY votes DESC
-	`, electionID)
-	if err != nil {
-		http.Error(w, "❌ Failed to fetch election results", http.StatusInternalServerError)
-		return
-	}
-	defer rows.Close()
-
-	type Result struct {
-		Name  string `json:"name"`
-		Party string `json:"party"`
-		Votes int    `json:"votes"`
-	}
-
-	var results []Result
-	for rows.Next() {
-		var r Result
-		err := rows.Scan(&r.Name, &r.Party, &r.Votes)
-		if err != nil {
-			http.Error(w, "❌ Error scanning result", http.StatusInternalServerError)
-			return
-		}
-		results = append(results, r)
-	}
-
-	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(results)
 }

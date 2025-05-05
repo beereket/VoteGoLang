@@ -10,3 +10,8 @@ type Election struct {
 	CreatedAt    time.Time `json:"created_at"`
 	UpdatedAt    time.Time `json:"updated_at"`
 }
+
+type ElectionWithCandidates struct {
+	Election   Election    `json:"election"`
+	Candidates []Candidate `json:"candidates"`
+}

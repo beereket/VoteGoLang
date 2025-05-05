@@ -1,195 +1,70 @@
 package handlers
 
 import (
-	"database/sql"
-	"encoding/json"
-	"fmt"
-	"net/http"
-	"os"
-	"time"
-
-	"VoteGolang/internal/database"
-	"VoteGolang/internal/models"
+	"VoteGolang/internal/domain"
 	"VoteGolang/internal/service"
-	"github.com/golang-jwt/jwt/v5"
-	"golang.org/x/crypto/bcrypt"
+	"encoding/json"
+	"net/http"
 )
 
-func CreateUser(w http.ResponseWriter, r *http.Request) {
-	var user models.User
+type UserHandler struct {
+	Service *service.UserService
+}
 
+func NewUserHandler(s *service.UserService) *UserHandler {
+	return &UserHandler{Service: s}
+}
+
+func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
+	var user domain.User
 	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
 		http.Error(w, "❌ Invalid input", http.StatusBadRequest)
 		return
 	}
-
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), 14)
-	if err != nil {
-		http.Error(w, "❌ Failed to hash password", http.StatusInternalServerError)
-		return
-	}
-
-	query := `
-	INSERT INTO users (username, user_full_name, password, birth_date, address, created_at, updated_at)
-	VALUES (?, ?, ?, ?, ?, ?, ?)
-	`
-
-	res, err := database.DB.Exec(query,
-		user.Username,
-		user.UserFullName,
-		hashedPassword,
-		user.BirthDate,
-		user.Address,
-		time.Now(),
-		time.Now(),
-	)
-
+	_, err := h.Service.Register(user, false)
 	if err != nil {
 		http.Error(w, "❌ Failed to create user", http.StatusInternalServerError)
 		return
 	}
-
-	userID, _ := res.LastInsertId()
-
-	service.CreateActivityLog(int(userID), "registration", fmt.Sprintf("User '%s' registered", user.Username))
-
-	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(map[string]string{"message": "✅ User created"})
 }
 
-var jwtSecret = []byte(os.Getenv("JWT_SECRET"))
-
-type LoginInput struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
-}
-
-func LoginUser(w http.ResponseWriter, r *http.Request) {
-	var input LoginInput
-
+func (h *UserHandler) LoginUser(w http.ResponseWriter, r *http.Request) {
+	var input domain.LoginInput
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
 		http.Error(w, "❌ Invalid input", http.StatusBadRequest)
 		return
 	}
-
-	var id int
-	var hashedPassword string
-	var role string
-	var deletedAt sql.NullTime
-
-	err := database.DB.QueryRow(`
-		SELECT id, password, role, deleted_at
-		FROM users
-		WHERE username = ?
-	`, input.Username).Scan(&id, &hashedPassword, &role, &deletedAt)
-
+	token, role, err := h.Service.Login(input)
 	if err != nil {
-		http.Error(w, "❌ Invalid username or password", http.StatusUnauthorized)
+		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
 	}
-
-	if deletedAt.Valid {
-		http.Error(w, "❌ This account is banned.", http.StatusForbidden)
-		return
-	}
-
-	err = bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(input.Password))
-	if err != nil {
-		http.Error(w, "❌ Invalid username or password", http.StatusUnauthorized)
-		return
-	}
-
-	claims := jwt.MapClaims{
-		"user_id":  id,
-		"username": input.Username,
-		"role":     role,
-		"exp":      time.Now().Add(24 * time.Hour).Unix(),
-	}
-
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-
-	tokenString, err := token.SignedString(jwtSecret)
-	if err != nil {
-		http.Error(w, "❌ Could not generate token", http.StatusInternalServerError)
-		return
-	}
-
-	service.CreateActivityLog(id, "login", fmt.Sprintf("User '%s' logged in", input.Username))
-
-	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{
-		"token": tokenString,
+		"token": token,
 		"role":  role,
 	})
 }
 
-func CreateAdminUser(w http.ResponseWriter, r *http.Request) {
-	var user models.User
-
+func (h *UserHandler) CreateAdminUser(w http.ResponseWriter, r *http.Request) {
+	var user domain.User
 	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
 		http.Error(w, "❌ Invalid input", http.StatusBadRequest)
 		return
 	}
-
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), 14)
+	_, err := h.Service.Register(user, true)
 	if err != nil {
-		http.Error(w, "❌ Failed to hash password", http.StatusInternalServerError)
+		http.Error(w, "❌ Failed to create admin", http.StatusInternalServerError)
 		return
 	}
-
-	query := `
-	INSERT INTO users (username, user_full_name, password, birth_date, address, role, created_at, updated_at)
-	VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-	`
-
-	res, err := database.DB.Exec(query,
-		user.Username,
-		user.UserFullName,
-		hashedPassword,
-		user.BirthDate,
-		user.Address,
-		"admin",
-		time.Now(),
-		time.Now(),
-	)
-
-	if err != nil {
-		http.Error(w, "❌ Failed to create admin user", http.StatusInternalServerError)
-		return
-	}
-
-	userID, _ := res.LastInsertId()
-
-	service.CreateActivityLog(int(userID), "admin_registration", fmt.Sprintf("Admin user '%s' registered", user.Username))
-
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(map[string]string{"message": "✅ Admin user created"})
+	json.NewEncoder(w).Encode(map[string]string{"message": "✅ Admin created"})
 }
 
-func ListAdminUsers(w http.ResponseWriter, r *http.Request) {
-	rows, err := database.DB.Query(`
-		SELECT id, username, user_full_name, birth_date, address
-		FROM users
-		WHERE role = 'admin' AND deleted_at IS NULL
-	`)
+func (h *UserHandler) ListAdminUsers(w http.ResponseWriter, r *http.Request) {
+	admins, err := h.Service.ListAdmins()
 	if err != nil {
-		http.Error(w, "❌ Failed to fetch admin users", http.StatusInternalServerError)
+		http.Error(w, "❌ Failed to fetch admins", http.StatusInternalServerError)
 		return
 	}
-	defer rows.Close()
-
-	var admins []models.User
-
-	for rows.Next() {
-		var u models.User
-		err := rows.Scan(&u.ID, &u.Username, &u.UserFullName, &u.BirthDate, &u.Address)
-		if err != nil {
-			http.Error(w, "❌ Error reading user", http.StatusInternalServerError)
-			return
-		}
-		admins = append(admins, u)
-	}
-
-	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(admins)
 }
